@@ -1,0 +1,193 @@
+QMainWindow {
+    background-color: #1c1c28;
+    color: #ffffff;
+    font-size: 14px;
+    padding: 10px;
+}
+
+QLabel#datetime_label, QLabel#user_label {
+    color: #00ff00;
+    font-size: 12px;
+    font-family: 'Consolas';
+    background-color: #2d3436;
+    padding: 5px;
+    border-radius: 4px;
+}
+
+QPushButton {
+    background-color: #3a3af5;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+QPushButton:hover {
+    background-color: #5a5af5;
+}
+
+QPushButton:pressed {
+    background-color: #2a2af5;
+}
+
+/* Huffman Tree Button */
+QPushButton#show_huffman_tree_button {
+    background-color: #2d5a27;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 15px;
+    margin: 5px;
+    font-weight: bold;
+}
+
+QPushButton#show_huffman_tree_button:hover {
+    background-color: #367031;
+}
+
+QPushButton#show_huffman_tree_button:pressed {
+    background-color: #254720;
+}
+
+QPushButton#show_huffman_tree_button:disabled {
+    background-color: #484848;
+    color: #888888;
+}
+
+QTextEdit {
+    background-color: #2a2a40;
+    color: #ffffff;
+    border: 1px solid #555;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 14px;
+}
+
+QTextEdit#output {
+    background-color: #262636;
+    color: whitesmoke;
+    border: 2px solid #3a3a5a;
+    border-radius: 8px;
+    padding: 15px;
+    font-family: 'Consolas';
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+QTextEdit#output:focus {
+    border-color: #3a3af5;
+}
+
+QGraphicsView {
+    background-color: #262636;
+    color: white;
+    border: 2px solid #3a3a5a;
+    border-radius: 8px;
+    selection-background-color: #3a3af5;
+    selection-color: white;
+}
+
+QGraphicsView:focus {
+    border-color: #3a3af5;
+}
+
+QGroupBox {
+    background-color: #1a1a2e;
+    border: 2px solid #2d3436;
+    border-radius: 10px;
+    margin-top: 1ex;
+    padding: 10px;
+}
+
+QGroupBox::title {
+    color: #ffffff;
+    subcontrol-origin: margin;
+    subcontrol-position: top center;
+    padding: 0 3px;
+    background-color: #1a1a2e;
+}
+
+QComboBox {
+    background-color: #2a2a40;
+    color: #ffffff;
+    border: 1px solid #555;
+    border-radius: 8px;
+    padding: 5px;
+    font-size: 14px;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #2a2a40;
+    color: #ffffff;
+    border: 1px solid #555;
+    selection-background-color: #3a3af5;
+}
+
+QStatusBar {
+    background-color: #2a2a40;
+    color: #ffffff;
+    font-size: 12px;
+    border-top: 1px solid #555;
+}
+
+QMenuBar {
+    background-color: #2a2a40;
+    color: #ffffff;
+}
+
+QMenuBar::item {
+    background-color: transparent;
+}
+
+QMenuBar::item:selected {
+    background-color: #3a3a5a;
+}
+
+QMenu {
+    background-color: #2a2a40;
+    color: #ffffff;
+    border: 1px solid #555;
+}
+
+QMenu::item:selected {
+    background-color: #3a3a5a;
+}
+
+
+QGraphicsTextItem {
+    color: #ffffff;
+}
+
+QGraphicsTextItem[class="title"] {
+    color: #00BFFF;
+}
+
+QGraphicsTextItem[class="normal"] {
+    color: #ffffff;
+}
+
+QDialog[windowTitle="Huffman Tree Visualization"] {
+    background-color: #1a1a2e;
+}
+
+QDialog[windowTitle="Huffman Tree Visualization"] QGraphicsView {
+    background-color: #262636;
+    border: 2px solid #3a3a5a;
+    border-radius: 8px;
+}
+
+QToolBar {
+    background-color: #262636;
+    border: none;
+    padding: 5px;
+}
+
+QToolBar QLabel {
+    color: white;
+    font-size: 12px;
+    padding: 5px;
+    background-color: #3a3a5a;
+    border-radius: 4px;
+}
