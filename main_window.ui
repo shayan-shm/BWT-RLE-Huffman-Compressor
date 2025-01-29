@@ -476,6 +476,12 @@
     <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
+   <widget class="QMenu" name="menuHistory">
+    <property name="title">
+     <string>History</string>
+    </property>
+    <addaction name="actionShowHistory"/>
+    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
      <string>Help</string>
@@ -484,6 +490,7 @@
     <addaction name="actionDocumentation"/>
    </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuHistory"/>
    <addaction name="menuHelp"/>
   </widget>
   <action name="actionOpen">
@@ -538,6 +545,17 @@
     <string>F1</string>
    </property>
   </action>
+  <action name="actionShowHistory">
+   <property name="text">
+    <string>Show History</string>
+   </property>
+   <property name="statusTip">
+    <string>View compression history</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+H</string>
+   </property>
+</action>
  </widget>
  <resources/>
  <connections/>

@@ -1,14 +1,18 @@
+import json
+import re
 import sys
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from collections import Counter
 import pickle
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer, QEvent
 from PyQt6.QtGui import QFont, QPen, QBrush, QColor, QPainter
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QDialog, QVBoxLayout, QGraphicsView,
     QGraphicsScene, QGraphicsEllipseItem, QGraphicsTextItem,
-    QFileDialog, QMessageBox, QMenu
+    QFileDialog, QMessageBox, QMenu, QPushButton, QHBoxLayout, QInputDialog, QFrame, QLabel, QComboBox,
+    QGraphicsRectItem, QTextEdit, QTabWidget, QSizePolicy, QScrollArea, QGraphicsProxyWidget, QWidget, QGridLayout,
+    QGroupBox
 )
 from PyQt6 import uic
 
@@ -19,10 +23,659 @@ from advanced_compression_tool import (
     huffman_encode, huffman_decode
 )
 
+class CompressionHistoryDialog(QDialog):
+    def __init__(self, parent=None, compression_history=None):
+        super().__init__(parent)
+        self.compression_history = compression_history or []
+
+        # Set window properties
+        self.setWindowTitle("Compression History")
+        screen = QApplication.primaryScreen()
+        screen_size = screen.availableGeometry()
+        self.resize(int(screen_size.width() * 0.8), int(screen_size.height() * 0.8))
+
+        # Set size constraints
+        self.setMinimumSize(800, 600)
+
+        self.setup_ui()
+        self.load_history()
+        self.update_history_view()  # Ensure the history view is updated initially
+
+    def setup_ui(self):
+        self.setWindowTitle("Compression History")
+        screen = QApplication.primaryScreen()
+        screen_size = screen.availableGeometry()
+        self.resize(int(screen_size.width() * 0.8), int(screen_size.height() * 0.8))
+
+        # Main layout
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        # Header frame
+        header_frame = QFrame()
+        header_frame.setStyleSheet("""
+            QFrame {
+                background-color: #1a1a2e;
+                border-bottom: 2px solid #2d3436;
+                padding: 10px;
+            }
+        """)
+
+        # Create main header layout
+        header_layout = QVBoxLayout(header_frame)
+        header_layout.setContentsMargins(10, 5, 10, 5)
+        header_layout.setSpacing(10)
+
+        # Filter group box
+        filter_group = QGroupBox("Filters")
+        filter_group.setStyleSheet("""
+            QGroupBox {
+                border: 1px solid #3a3a5a;
+                border-radius: 8px;
+                margin-top: 10px;
+                padding-top: 10px;
+                color: white;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+            }
+        """)
+
+        # Grid layout for filters
+        filter_grid = QGridLayout(filter_group)
+        filter_grid.setSpacing(10)
+
+        # Method filter
+        method_label = QLabel("Method:")
+        method_label.setStyleSheet("color: #ffffff;")
+        self.method_filter = QComboBox()
+        self.method_filter.addItems([
+            "All Methods", "BWT", "RLE", "Huffman", "BWT and RLE and Huffman"
+        ])
+
+        # Operation filter
+        operation_label = QLabel("Operation:")
+        operation_label.setStyleSheet("color: #ffffff;")
+        self.operation_filter = QComboBox()
+        self.operation_filter.addItems([
+            "All Operations", "Encode", "Decode", "Encode → Decode"
+        ])
+
+        # Date filter
+        date_label = QLabel("Date Range:")
+        date_label.setStyleSheet("color: #ffffff;")
+        self.date_filter = QComboBox()
+        self.date_filter.addItems([
+            "All Time", "Today", "Last 7 Days", "Last 30 Days"
+        ])
+
+        # Common ComboBox style
+        combo_style = """
+            QComboBox {
+                background-color: #262636;
+                color: #ffffff;
+                border: 1px solid #3a3a5a;
+                border-radius: 8px;
+                padding: 5px;
+                min-width: 180px;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #ffffff;
+                margin-right: 5px;
+            }
+        """
+
+        self.method_filter.setStyleSheet(combo_style)
+        self.operation_filter.setStyleSheet(combo_style)
+        self.date_filter.setStyleSheet(combo_style)
+
+        # Add filters to grid layout
+        filter_grid.addWidget(method_label, 0, 0)
+        filter_grid.addWidget(self.method_filter, 0, 1)
+        filter_grid.addWidget(operation_label, 0, 2)
+        filter_grid.addWidget(self.operation_filter, 0, 3)
+        filter_grid.addWidget(date_label, 0, 4)
+        filter_grid.addWidget(self.date_filter, 0, 5)
+
+        # Add stretching to prevent compression
+        filter_grid.setColumnStretch(6, 1)
+
+        # Button container
+        button_container = QWidget()
+        button_layout = QHBoxLayout(button_container)
+        button_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Export and Clear buttons
+        self.export_button = QPushButton("Export History")
+        self.export_button.setStyleSheet("""
+            QPushButton {
+                background-color: #2d5a27;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 8px 15px;
+                font-weight: bold;
+                min-width: 120px;
+            }
+            QPushButton:hover {
+                background-color: #336633;
+            }
+        """)
+
+        self.clear_button = QPushButton("Clear History")
+        self.clear_button.setStyleSheet("""
+            QPushButton {
+                background-color: #8B0000;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 8px 15px;
+                font-weight: bold;
+                min-width: 120px;
+            }
+            QPushButton:hover {
+                background-color: #A00000;
+            }
+        """)
+
+        button_layout.addStretch()
+        button_layout.addWidget(self.export_button)
+        button_layout.addSpacing(10)
+        button_layout.addWidget(self.clear_button)
+
+        # Add filter group and button container to header layout
+        header_layout.addWidget(filter_group)
+        header_layout.addWidget(button_container)
+
+        # Graphics view
+        self.scene = QGraphicsScene()
+        self.view = QGraphicsView(self.scene)
+        self.view.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.view.setStyleSheet("""
+            QGraphicsView {
+                background-color: #111111;
+                border: none;
+            }
+        """)
+        self.view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.view.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+
+        # Set size policy to make the view expand properly
+        self.view.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+        # Add widgets to main layout
+        layout.addWidget(header_frame)
+        layout.addWidget(self.view)
+
+        # Connect signals
+        self.method_filter.currentTextChanged.connect(self.update_history_view)
+        self.operation_filter.currentTextChanged.connect(self.update_history_view)
+        self.date_filter.currentTextChanged.connect(self.update_history_view)
+        self.clear_button.clicked.connect(self.clear_history)
+        self.export_button.clicked.connect(self.export_history)
+
+    def update_scene_layout(self):
+        """Update scene layout and card widths"""
+        view_width = self.view.viewport().width()
+
+        # Update all card widths
+        for item in self.scene.items():
+            if isinstance(item, QGraphicsRectItem):
+                current_y = item.rect().y()
+                current_height = item.rect().height()
+                item.setRect(0, current_y, view_width, current_height)
+
+                # Update positions of child items
+                for child in self.scene.items():
+                    if not isinstance(child, QGraphicsRectItem):
+                        child_pos = child.pos()
+                        if current_y < child_pos.y() < current_y + current_height:
+                            if isinstance(child, QGraphicsProxyWidget):  # For buttons
+                                child.setPos(10, child_pos.y())
+                            else:  # For text items
+                                if child_pos.x() > view_width / 2:  # Right aligned items
+                                    child.setPos(view_width / 2, child_pos.y())
+                                else:  # Left aligned items
+                                    child.setPos(10, child_pos.y())
+
+        # Update scene rect
+        self.scene.setSceneRect(0, 0, view_width, self.scene.itemsBoundingRect().height())
+
+    def update_history_view(self):
+        self.scene.clear()
+        filtered_history = self.filter_history()
+        view_width = self.view.viewport().width()
+
+        if not filtered_history:
+            text_item = QGraphicsTextItem("No compression history available")
+            text_item.setDefaultTextColor(Qt.GlobalColor.white)
+            font = text_item.font()
+            font.setPointSize(14)
+            text_item.setFont(font)
+            self.scene.addItem(text_item)
+            text_item.setPos((view_width - text_item.boundingRect().width()) / 2, 20)
+            self.scene.setSceneRect(0, 0, view_width, 60)
+            return
+
+        y_pos = 10
+
+        for history_item in filtered_history:
+            # Create card with exact width
+            card_height = 200  # Adjust card height as needed
+            card = QGraphicsRectItem(0, y_pos, view_width, card_height)
+            card.setBrush(QBrush(QColor("#1a1a2e")))
+            card.setPen(QPen(QColor("#2d3436")))
+            self.scene.addItem(card)
+
+            # Padding and dimensions
+            padding = 20
+            left_width = view_width * 0.3  # 30% of width for left column
+            middle_width = view_width * 0.3  # 30% of width for middle column
+            right_width = view_width * 0.3  # 30% of width for right column
+            current_y = y_pos + padding  # Start position inside card
+
+            # Date (Left column)
+            date_info = QGraphicsTextItem()
+            date_info.setHtml(
+                f'<div style="color: #00BFFF; font-size: 12px;">'
+                f'<b>Date:</b> {history_item.get("date", "N/A")}'
+                f'</div>'
+            )
+            date_info.setPos(padding, current_y)
+            date_info.setTextWidth(left_width - padding)
+            self.scene.addItem(date_info)
+            current_y += 15
+
+            # Method (Middle column)
+            method_info = QGraphicsTextItem()
+            method_info.setHtml(
+                f'<div style="color: #00BFFF; font-size: 12px;">'
+                f'<b>Method:</b> {history_item.get("algorithm", "N/A")}'
+                f'</div>'
+            )
+            method_info.setPos(padding, current_y)
+            # method_info.setTextWidth(middle_width - padding)
+            self.scene.addItem(method_info)
+            current_y += 15
+
+            # Operation and Time (Right column)
+            operation_info = QGraphicsTextItem()
+            operation_info.setHtml(
+                f'<div style="color: #00BFFF; font-size: 12px;">'
+                f'<b>Operation:</b> {history_item.get("operation_type", "N/A")}<br>'
+                f'<b>Processing Time:</b> {history_item.get("time_taken", 0):.3f}s'
+                f'</div>'
+            )
+            operation_info.setPos(padding, current_y)
+            operation_info.setTextWidth(right_width - padding)
+            self.scene.addItem(operation_info)
+            current_y += 30  # Move to next line inside the card
+
+            # Size information (Middle row)
+            size_info = QGraphicsTextItem()
+            size_info.setHtml(
+                f'<div style="color: #00ff00; font-size: 12px;">'
+                f'<b>Original Size:</b> {history_item.get("original_size", 0)} bytes | '
+                f'<b>Compressed Size:</b> {history_item.get("compressed_size", 0)} bytes | '
+                f'<b>Compression Ratio:</b> {history_item.get("compression_ratio", 0):.2f}%'
+                f'</div>'
+            )
+            size_info.setPos(padding, current_y)
+            size_info.setTextWidth(view_width - padding * 2)
+            self.scene.addItem(size_info)
+            current_y += 30  # Move to next line
+
+            # Text preview (Bottom)
+            def truncate_text(text, max_length=50):
+                if not text:
+                    return "N/A"
+                return text if len(text) <= max_length else text[:max_length] + "..."
+
+            text_info = QGraphicsTextItem()
+            text_info.setHtml(
+                f'<div style="color: #ffffff; font-size: 12px;">'
+                f'<b>Input:</b> {truncate_text(history_item.get("original_text", ""))}<br>'
+                f'<b>Output:</b> {truncate_text(history_item.get("processed_text", ""))}'
+                f'</div>'
+            )
+            text_info.setPos(padding, current_y)
+            text_info.setTextWidth(view_width - padding * 2)
+            self.scene.addItem(text_info)
+            current_y += 50  # Move to next section
+
+            # Show Full Text button
+            show_text_button = QPushButton("Show Full Text")
+            show_text_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #3a3af5;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    padding: 4px 8px;
+                    min-width: 100px;
+                }
+                QPushButton:hover {
+                    background-color: #4a4af5;
+                }
+            """)
+
+            def create_button_handler(item_data):
+                def button_handler():
+                    self.show_full_text_dialog(item_data)
+
+                return button_handler
+
+            show_text_button.clicked.connect(create_button_handler(history_item))
+
+            proxy = self.scene.addWidget(show_text_button)
+            proxy.setPos(padding, current_y)
+            current_y += show_text_button.sizeHint().height() + 10  # Account for button height and spacing
+
+            # Update y_pos for the next card
+            y_pos += max(current_y - y_pos, card_height) + 10  # Add spacing between cards
+
+        # Set scene rect to fit content
+        self.scene.setSceneRect(0, 0, view_width, y_pos)
+        self.update_scene_layout()
+
+        # Enable scrolling if needed
+        self.view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+
+    def show_full_text_dialog(self, item):
+        try:
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Full Text View")
+            dialog.resize(600, 400)
+
+            layout = QVBoxLayout(dialog)
+
+            # Create tabs for input and output text
+            tabs = QTabWidget()
+            tabs.setStyleSheet("""
+                QTabWidget {
+                    background-color: #1a1a2e;
+                }
+                QTabWidget::pane {
+                    border: 1px solid #2d3436;
+                }
+                QTabBar::tab {
+                    background-color: #262636;
+                    color: white;
+                    padding: 8px 12px;
+                    margin: 2px;
+                }
+                QTabBar::tab:selected {
+                    background-color: #3a3af5;
+                }
+            """)
+
+            # Input text tab
+            input_tab = QTextEdit()
+            input_tab.setPlainText(item["original_text"])
+            input_tab.setReadOnly(True)
+            input_tab.setStyleSheet("""
+                QTextEdit {
+                    background-color: #262636;
+                    color: white;
+                    border: none;
+                    padding: 5px;
+                }
+            """)
+            tabs.addTab(input_tab, "Input Text")
+
+            # Output text tab
+            output_tab = QTextEdit()
+            output_tab.setPlainText(item["processed_text"])
+            output_tab.setReadOnly(True)
+            output_tab.setStyleSheet(input_tab.styleSheet())
+            tabs.addTab(output_tab, "Processed Text")
+
+            layout.addWidget(tabs)
+
+            # Add close button
+            close_button = QPushButton("Close")
+            close_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #3a3af5;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    padding: 6px 12px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #4a4af5;
+                }
+            """)
+            close_button.clicked.connect(dialog.close)
+            layout.addWidget(close_button)
+
+            dialog.setStyleSheet("""
+                QDialog {
+                    background-color: #1a1a2e;
+                }
+            """)
+
+            dialog.exec()
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"Failed to show text dialog: {str(e)}"
+            )
+
+    def showEvent(self, event):
+        """Handle initial show event"""
+        super().showEvent(event)
+        # Force layout update when dialog is first shown
+        QTimer.singleShot(0, self.update_scene_layout)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        # Update view width to match window width
+        self.view.setFixedWidth(self.width())
+        # Force scene update
+        self.update_scene_layout()
+
+    def filter_history(self):
+        filtered = self.compression_history[:]
+
+        try:
+            # Filter by method
+            method = self.method_filter.currentText()
+            if method != "All Methods":
+                filtered = [item for item in filtered if item.get('algorithm') == method]
+
+            # Filter by operation
+            operation = self.operation_filter.currentText()
+            if operation != "All Operations":
+                filtered = [item for item in filtered if item.get('operation_type') == operation]
+
+            # Filter by date
+            date_filter = self.date_filter.currentText()
+            now = datetime.now()
+            if date_filter == "Today":
+                filtered = [
+                    item for item in filtered
+                    if datetime.strptime(item.get('date', ''), '%Y-%m-%d %H:%M:%S').date() == now.date()
+                ]
+            elif date_filter == "Last 7 Days":
+                seven_days_ago = now - timedelta(days=7)
+                filtered = [
+                    item for item in filtered
+                    if datetime.strptime(item.get('date', ''), '%Y-%m-%d %H:%M:%S') >= seven_days_ago
+                ]
+            elif date_filter == "Last 30 Days":
+                thirty_days_ago = now - timedelta(days=30)
+                filtered = [
+                    item for item in filtered
+                    if datetime.strptime(item.get('date', ''), '%Y-%m-%d %H:%M:%S') >= thirty_days_ago
+                ]
+        except Exception as e:
+            QMessageBox.warning(self, "Filter Error", f"Error filtering history: {str(e)}")
+            return []
+
+        return filtered
+
+    def showEvent(self, event):
+        """Handle initial show event"""
+        super().showEvent(event)
+        # Force layout update when dialog is first shown
+        QTimer.singleShot(0, self.update_scene_layout)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        # Update view width to match window width
+        self.view.setFixedWidth(self.width())
+        # Force scene update
+        self.update_scene_layout()
+
+    def filter_history(self):
+        filtered = self.compression_history[:]
+
+        try:
+            # Filter by method
+            method = self.method_filter.currentText()
+            if method != "All Methods":
+                filtered = [item for item in filtered if item.get('algorithm') == method]
+
+            # Filter by operation
+            operation = self.operation_filter.currentText()
+            if operation != "All Operations":
+                filtered = [item for item in filtered if item.get('operation_type') == operation]
+
+            # Filter by date
+            date_filter = self.date_filter.currentText()
+            now = datetime.now()
+            if date_filter == "Today":
+                filtered = [
+                    item for item in filtered
+                    if datetime.strptime(item.get('date', ''), '%Y-%m-%d %H:%M:%S').date() == now.date()
+                ]
+            elif date_filter == "Last 7 Days":
+                seven_days_ago = now - timedelta(days=7)
+                filtered = [
+                    item for item in filtered
+                    if datetime.strptime(item.get('date', ''), '%Y-%m-%d %H:%M:%S') >= seven_days_ago
+                ]
+            elif date_filter == "Last 30 Days":
+                thirty_days_ago = now - timedelta(days=30)
+                filtered = [
+                    item for item in filtered
+                    if datetime.strptime(item.get('date', ''), '%Y-%m-%d %H:%M:%S') >= thirty_days_ago
+                ]
+        except Exception as e:
+            QMessageBox.warning(self, "Filter Error", f"Error filtering history: {str(e)}")
+            return []
+
+        return filtered
+
+    def export_history(self):
+        """Export compression history to a file"""
+        try:
+            filename, _ = QFileDialog.getSaveFileName(
+                self,
+                "Export History",
+                "",
+                "CSV Files (*.csv);;JSON Files (*.json);;All Files (*.*)"
+            )
+
+            if filename:
+                if filename.endswith('.csv'):
+                    self.export_to_csv(filename)
+                elif filename.endswith('.json'):
+                    self.export_to_json(filename)
+                else:
+                    # Default to JSON if no extension specified
+                    filename += '.json'
+                    self.export_to_json(filename)
+
+                QMessageBox.information(
+                    self,
+                    "Export Successful",
+                    f"History exported to {filename}"
+                )
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Export Error",
+                f"Failed to export history: {str(e)}"
+            )
+
+    def export_to_csv(self, filename):
+        """Export history to CSV format"""
+        import csv
+
+        fieldnames = [
+            'date', 'algorithm', 'operation_type', 'original_text',
+            'processed_text', 'original_size', 'compressed_size',
+            'compression_ratio', 'time_taken'
+        ]
+
+        with open(filename, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            for item in self.compression_history:
+                row = {field: item.get(field, '') for field in fieldnames}
+                writer.writerow(row)
+
+    def export_to_json(self, filename):
+        """Export history to JSON format"""
+        import json
+
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(self.compression_history, f, indent=4, ensure_ascii=False)
+
+    def clear_history(self):
+        reply = QMessageBox.question(
+            self,
+            'Clear History',
+            'Are you sure you want to clear all compression history?',
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            self.compression_history.clear()
+            self.update_history_view()
+            return True
+        return False
+
+    def load_history(self):
+        """Load and validate history data"""
+        try:
+            # Validate required fields
+            required_fields = {'date', 'algorithm', 'operation_type', 'original_text',
+                               'processed_text', 'original_size', 'compressed_size',
+                               'compression_ratio', 'time_taken'}
+
+            valid_history = []
+            for item in self.compression_history:
+                # Check if all required fields exist
+                if all(field in item for field in required_fields):
+                    valid_history.append(item)
+                # else:
+                #     print(f"Warning: Skipping invalid history item: {item}")
+
+            self.compression_history = valid_history
+            self.update_history_view()
+        except Exception as e:
+            QMessageBox.warning(self, "Load Error", f"Error loading history: {str(e)}")
 
 class MyApp(QMainWindow):
     def __init__(self):
         super().__init__()
+        # Load the UI file
         uic.loadUi("main_window.ui", self)
         self.setup_ui()
         self.initialize_variables()
@@ -82,8 +735,9 @@ class MyApp(QMainWindow):
         # Connect signals
         self.process_button.clicked.connect(self.process)
         self.open_file_button.clicked.connect(self.open_file)
-        self.show_huffman_tree_button.clicked.connect(self.show_huffman_tree)
+        self.show_huffman_tree_button.clicked.connect(lambda : self.open_huffman_tree(self.current_huffman_tree))
         self.method.currentTextChanged.connect(self.update_huffman_button_state)
+        self.operation.currentTextChanged.connect(self.update_huffman_button_state)
 
         # Connect menu actions
         self.actionOpen.triggered.connect(self.open_file)
@@ -91,6 +745,7 @@ class MyApp(QMainWindow):
         self.actionExit.triggered.connect(self.close)
         self.actionAbout.triggered.connect(self.show_about)
         self.actionDocumentation.triggered.connect(self.show_documentation)
+        self.actionShowHistory.triggered.connect(self.show_compression_history)
 
         self.show_huffman_tree_button.setEnabled(False)
 
@@ -166,7 +821,7 @@ class MyApp(QMainWindow):
             "RLE": self.RLE,
             "Huffman": self.Huffman,
         }
-
+        self.codes = None
         if algorithm == 'BWT and RLE and Huffman':
             if "Encode" in operation:
                 for algo in ["BWT", "RLE", "Huffman"]:
@@ -186,18 +841,22 @@ class MyApp(QMainWindow):
     def BWT(self, text, operation):
         """Handle BWT compression"""
         try:
-            if operation == "Encode":
+            if "Encode" in operation:
                 encoded, rotations = bwt_encode(text)
                 self.add_text_to_scene("BWT Encoding Steps:", x=0, y=self.y_offset, is_title=True)
                 self.add_text_to_scene(f"All Rotations: {rotations}", x=0, y=self.y_offset)
                 self.add_text_to_scene(f"BWT Encoded Result: {encoded}", x=0, y=self.y_offset)
-                return encoded
-            else:
+                text = encoded
+            if 'Decode' in operation:
                 decoded, iterations = bwt_decode(text)
                 self.add_text_to_scene("BWT Decoding Steps:", x=0, y=self.y_offset, is_title=True)
                 for i, iteration in enumerate(iterations):
                     self.add_text_to_scene(f"Iteration {i + 1}: {iteration}", x=0, y=self.y_offset)
                 self.add_text_to_scene(f"BWT Decoded Result: {decoded}", x=0, y=self.y_offset)
+
+            if 'Encode' in operation:
+                return encoded
+            else:
                 return decoded
         except Exception as e:
             raise Exception(f"BWT Error: {str(e)}")
@@ -205,15 +864,19 @@ class MyApp(QMainWindow):
     def RLE(self, text, operation):
         """Handle RLE compression"""
         try:
-            if operation == "Encode":
+            if "Encode" in operation:
                 encoded = rle_encode(text)
                 self.add_text_to_scene("RLE Encoding Steps:", x=0, y=self.y_offset, is_title=True)
                 self.add_text_to_scene(f"RLE Encoded Result: {encoded}", x=0, y=self.y_offset)
-                return encoded
-            else:
+                text = encoded
+            if 'Decode' in operation:
                 decoded = rle_decode(text)
                 self.add_text_to_scene("RLE Decoding Steps:", x=0, y=self.y_offset, is_title=True)
                 self.add_text_to_scene(f"RLE Decoded Result: {decoded}", x=0, y=self.y_offset)
+
+            if 'Encode' in operation:
+                return encoded
+            else:
                 return decoded
         except Exception as e:
             raise Exception(f"RLE Error: {str(e)}")
@@ -221,7 +884,7 @@ class MyApp(QMainWindow):
     def Huffman(self, text, operation):
         """Handle Huffman compression"""
         try:
-            if operation == "Encode":
+            if "Encode" in operation:
                 freq_dict = Counter(text)
                 self.current_huffman_tree = build_huffman_tree(freq_dict)
                 self.codes = generate_huffman_codes(self.current_huffman_tree)
@@ -233,156 +896,212 @@ class MyApp(QMainWindow):
                 self.add_text_to_scene(f"Huffman Encoded Result: {encoded}", x=0, y=self.y_offset)
 
                 self.show_huffman_tree_button.setEnabled(True)
-                return encoded
-            else:
+                text = encoded
+            if 'Decode' in operation:
                 if not self.codes:
-                    raise ValueError("No Huffman codes available for decoding")
+                    self.codes = self.show_input_dialog()
+                    # raise ValueError("No Huffman codes available for decoding")
+
                 decoded = huffman_decode(text, self.codes)
                 self.add_text_to_scene("Huffman Decoding Steps:", x=0, y=self.y_offset, is_title=True)
                 self.add_text_to_scene(f"Huffman Decoded Result: {decoded}", x=0, y=self.y_offset)
+
+            if 'Encode' in operation:
+                return encoded
+            else:
                 return decoded
         except Exception as e:
             raise Exception(f"Huffman Error: {str(e)}")
 
-    def show_huffman_tree(self):
-        """Show Huffman tree visualization with zoom and pan capabilities"""
-        if not self.current_huffman_tree:
-            QMessageBox.warning(self, "Warning", "Please encode text using Huffman method first.")
-            return
+    def calculate_tree_height(self, node):
+        """Calculate the height of the tree"""
+        if node is None:
+            return 0
+        return 1 + max(self.calculate_tree_height(node.left),
+                       self.calculate_tree_height(node.right))
 
-        class ZoomableGraphicsView(QGraphicsView):
-            def __init__(self, scene):
-                super().__init__(scene)
-                self.setRenderHint(QPainter.RenderHint.Antialiasing)
-                self.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.FullViewportUpdate)
-                self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-                self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-                self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
-                self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
-                self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)  # Enable pan
-                self.zoom_factor = 1.15
-                self.current_zoom = 1.0
-                self.min_zoom = 0.1
-                self.max_zoom = 10.0
-
-            def wheelEvent(self, event):
-                """Handle mouse wheel for zooming"""
-                if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
-                    # Zoom Factor
-                    if event.angleDelta().y() > 0:
-                        factor = self.zoom_factor
-                    else:
-                        factor = 1 / self.zoom_factor
-
-                    new_zoom = self.current_zoom * factor
-                    if self.min_zoom <= new_zoom <= self.max_zoom:
-                        self.current_zoom = new_zoom
-                        self.scale(factor, factor)
-                else:
-                    super().wheelEvent(event)
-
-            def resetZoom(self):
-                """Reset zoom level"""
-                self.resetTransform()
-                self.current_zoom = 1.0
-
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Huffman Tree Visualization")
-        dialog.setMinimumSize(800, 600)
-
-        layout = QVBoxLayout()
-
-        # Create toolbar for zoom controls
-        from PyQt6.QtWidgets import QToolBar, QLabel
-        toolbar = QToolBar()
-
-        zoom_label = QLabel("Zoom: 100%")
-        toolbar.addWidget(zoom_label)
-
-        scene = QGraphicsScene()
-        view = ZoomableGraphicsView(scene)
-
-        total_width = self.calculate_subtree_widths(self.current_huffman_tree) * 50
-
-        # Draw tree
-        self.draw_huffman_tree(
-            self.current_huffman_tree,
-            400,
-            50,
-            total_width / 4,
-            scene
-        )
-
-        help_text = """
-        Controls:
-        - Zoom: Ctrl + Mouse Wheel
-        - Pan: Click and Drag
-        - Reset: Double Click
+    def calculate_subtree_width(self, node, level=0, widths=None):
         """
-        help_item = scene.addText(help_text)
-        help_item.setDefaultTextColor(Qt.GlobalColor.white)
-        help_item.setPos(10, 10)
+        Calculate the width needed for each node considering its level.
+        Returns a dictionary with level as key and total nodes at that level as value.
+        """
+        if widths is None:
+            widths = {}
 
-        def update_zoom_label():
-            zoom_percent = int(view.current_zoom * 100)
-            zoom_label.setText(f"Zoom: {zoom_percent}%")
+        if node is None:
+            return widths
 
-        view.scale_changed = update_zoom_label
+        # Initialize or increment the count at this level
+        widths[level] = widths.get(level, 0) + 1
 
-        # Add double-click event to reset zoom
-        def mouseDoubleClickEvent(event):
-            view.resetZoom()
-            update_zoom_label()
+        # Recursively calculate for children
+        self.calculate_subtree_width(node.left, level + 1, widths)
+        self.calculate_subtree_width(node.right, level + 1, widths)
 
-        view.mouseDoubleClickEvent = mouseDoubleClickEvent
+        return widths
 
-        layout.addWidget(toolbar)
-        layout.addWidget(view)
-        dialog.setLayout(layout)
+    def get_node_horizontal_spacing(self, level, total_levels, window_width):
+        """
+        Calculate horizontal spacing between nodes at each level
+        """
+        # Base spacing that increases for lower levels
+        min_spacing = 60  # Minimum spacing between nodes
+        max_spacing = window_width / 4  # Maximum spacing
 
-        view.fitInView(scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
-        view.current_zoom = 1.0
-        update_zoom_label()
+        # Calculate spacing based on level
+        spacing = max_spacing / (2 ** level)
+        return max(min_spacing, spacing)
 
-        dialog.exec()
-
-    def draw_huffman_tree(self, node, x, y, x_offset, scene):
-        """Draw Huffman tree node"""
-        if not node:
+    def draw_huffman_tree(self, node, x, y, level, total_levels, level_widths, window_width, drawn_positions=None):
+        """
+        Draws the Huffman tree with improved positioning to avoid overlaps.
+        """
+        if node is None:
             return
 
-        radius = 20
-        ellipse = QGraphicsEllipseItem(x - radius, y - radius, 2 * radius, 2 * radius)
-        ellipse.setPen(QPen(Qt.GlobalColor.white))
-        ellipse.setBrush(QBrush(QColor("#3a3af5")))
-        scene.addItem(ellipse)
+        if drawn_positions is None:
+            drawn_positions = {i: [] for i in range(total_levels)}
 
+        # Node properties
+        radius = max(25, 30 - (total_levels // 4))
+
+        # Calculate horizontal spacing for this level
+        h_spacing = self.get_node_horizontal_spacing(level, total_levels, window_width)
+
+        # Adjust x position if it conflicts with already drawn nodes
+        while any(abs(pos - x) < h_spacing for pos in drawn_positions[level]):
+            x += h_spacing
+
+        drawn_positions[level].append(x)
+
+        # Draw the current node
+        ellipse = QGraphicsEllipseItem(x - radius, y - radius, 2 * radius, 2 * radius)
+        ellipse.setPen(QPen(Qt.GlobalColor.black))
+        ellipse.setBrush(QBrush(QColor(200, 200, 255)))
+        self.huffman_scene.addItem(ellipse)
+
+        # Add text
         text = f"{node.char}:{node.freq}" if node.char else f"{node.freq}"
         text_item = QGraphicsTextItem(text)
-        text_item.setDefaultTextColor(Qt.GlobalColor.white)
-        text_item.setFont(QFont("Consolas", 8))
+        font = text_item.font()
+        font.setPointSize(int(max(8, radius * 0.5)))
+        text_item.setFont(font)
 
-        text_rect = text_item.boundingRect()
-        text_item.setPos(x - text_rect.width() / 2, y - text_rect.height() / 2)
-        scene.addItem(text_item)
+        # Center text
+        text_width = text_item.boundingRect().width()
+        text_height = text_item.boundingRect().height()
+        text_item.setPos(x - text_width / 2, y - text_height / 2)
+        self.huffman_scene.addItem(text_item)
 
-        if node.left:
-            left_x = x - x_offset * self.calculate_subtree_widths(node.left)
-            left_y = y + 60
-            scene.addLine(x, y + radius, left_x, left_y - radius, QPen(Qt.GlobalColor.white))
-            self.draw_huffman_tree(node.left, left_x, left_y, x_offset / 2, scene)
+        # Calculate vertical spacing
+        vertical_spacing = min(150, max(80, 400 / total_levels))
 
-        if node.right:
-            right_x = x + x_offset * self.calculate_subtree_widths(node.right)
-            right_y = y + 60
-            scene.addLine(x, y + radius, right_x, right_y - radius, QPen(Qt.GlobalColor.white))
-            self.draw_huffman_tree(node.right, right_x, right_y, x_offset / 2, scene)
+        # Draw children
+        if node.left or node.right:
+            next_y = y + vertical_spacing
 
-    def calculate_subtree_widths(self, node):
-        """Calculate width needed for Huffman subtree"""
-        if not node or (not node.left and not node.right):
-            return 1
-        return self.calculate_subtree_widths(node.left) + self.calculate_subtree_widths(node.right)
+            if node.left:
+                left_x = x - h_spacing
+                self.huffman_scene.addLine(x, y + radius, left_x, next_y - radius,
+                                           QPen(Qt.GlobalColor.black, 2))
+                self.draw_huffman_tree(node.left, left_x, next_y, level + 1,
+                                       total_levels, level_widths, window_width,
+                                       drawn_positions)
+
+            if node.right:
+                right_x = x + h_spacing
+                self.huffman_scene.addLine(x, y + radius, right_x, next_y - radius,
+                                           QPen(Qt.GlobalColor.black, 2))
+                self.draw_huffman_tree(node.right, right_x, next_y, level + 1,
+                                       total_levels, level_widths, window_width,
+                                       drawn_positions)
+
+    def open_huffman_tree(self, tree):
+        self.tree_window = QDialog(self)
+        self.tree_window.setWindowTitle("Huffman Tree")
+
+        # Set window size
+        screen = QApplication.primaryScreen()
+        screen_size = screen.availableGeometry()
+        window_width = int(screen_size.width() * 0.8)
+        window_height = int(screen_size.height() * 0.8)
+        self.tree_window.setGeometry(100, 100, window_width, window_height)
+
+        # Setup scene and view
+        self.huffman_scene = QGraphicsScene()
+        self.view = QGraphicsView(self.huffman_scene, self.tree_window)
+        self.view.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.view.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+        self.view.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+        self.view.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+        self.view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self.view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+
+        # Create zoom buttons
+        zoom_in_btn = QPushButton("Zoom In (+)", self.tree_window)
+        zoom_out_btn = QPushButton("Zoom Out (-)", self.tree_window)
+        reset_zoom_btn = QPushButton("Reset Zoom", self.tree_window)
+
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(zoom_in_btn)
+        button_layout.addWidget(zoom_out_btn)
+        button_layout.addWidget(reset_zoom_btn)
+        button_layout.addStretch()
+
+        layout = QVBoxLayout()
+        layout.addLayout(button_layout)
+        layout.addWidget(self.view)
+        self.tree_window.setLayout(layout)
+
+        # Calculate tree properties
+        total_levels = self.calculate_tree_height(tree)
+        level_widths = self.calculate_subtree_width(tree)
+
+        # Draw tree
+        self.huffman_scene.clear()
+        start_x = window_width / 2
+        start_y = 50
+
+        self.draw_huffman_tree(tree, start_x, start_y, 0, total_levels,
+                               level_widths, window_width)
+
+        # Set scene rect with padding
+        scene_rect = self.huffman_scene.itemsBoundingRect()
+        padding = 100
+        scene_rect.adjust(-padding, -padding, padding, padding)
+        self.huffman_scene.setSceneRect(scene_rect)
+
+        # Zoom functions
+        def zoom_in():
+            self.view.scale(1.2, 1.2)
+
+        def zoom_out():
+            self.view.scale(1 / 1.2, 1 / 1.2)
+
+        def reset_zoom():
+            self.view.fitInView(scene_rect, Qt.AspectRatioMode.KeepAspectRatio)
+
+        zoom_in_btn.clicked.connect(zoom_in)
+        zoom_out_btn.clicked.connect(zoom_out)
+        reset_zoom_btn.clicked.connect(reset_zoom)
+
+        # Wheel zoom
+        def wheelEvent(event):
+            if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+                if event.angleDelta().y() > 0:
+                    zoom_in()
+                else:
+                    zoom_out()
+            else:
+                QGraphicsView.wheelEvent(self.view, event)
+
+        self.view.wheelEvent = wheelEvent
+
+        # Show and fit view
+        self.tree_window.show()
+        QTimer.singleShot(100, lambda: reset_zoom())
+
+        self.tree_window.exec()
 
     def update_huffman_button_state(self, text):
         """Update Huffman tree button state"""
@@ -392,11 +1111,13 @@ class MyApp(QMainWindow):
         )
 
     def save_compression_result(self, original, compressed, method, operation, time_taken):
-        """Save compression results"""
+        """Save compression results with input and output text"""
         result = {
             'date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'method': method,
-            'operation': operation,
+            'algorithm': method,  # This key needs to match
+            'operation_type': operation,  # Changed from 'operation' to 'operation_type'
+            'original_text': original,
+            'processed_text': compressed,
             'original_size': len(original),
             'compressed_size': len(compressed),
             'compression_ratio': ((len(original) - len(compressed)) / len(original) * 100)
@@ -527,6 +1248,38 @@ class MyApp(QMainWindow):
         else:
             event.ignore()
 
+    def show_input_dialog(self):
+        """Displays an input dialog for the Huffman code table and validates the input."""
+        question = "Please enter your Huffman code table in the format:\n{'A': '0', 'B': '10', 'C': '11'}"
+
+        while True:
+            # Show the input dialog
+            text, ok = QInputDialog.getText(self, 'Input Huffman Code Table', question)
+
+            # Check if the user clicked OK and provided input
+            if ok:
+                if text.strip():  # Validate that input is not empty
+                    try:
+                        # Attempt to parse the input as a dictionary
+                        code_table = eval(re.search(r'({.*?})', text).group(1))
+                        if isinstance(code_table, dict):  # Ensure it's a dictionary
+                            return code_table
+                        else:
+                            raise ValueError("Input is not a valid dictionary.")
+                    except Exception as e:
+                        QMessageBox.critical(self, "Invalid Input", str(e))
+                else:
+                    QMessageBox.critical(self, "Input Error", "The input cannot be empty. Please try again.")
+            else:
+                # User pressed cancel or closed the dialog
+                raise ValueError("User cancelled the input.")
+
+    def show_compression_history(self):
+        """Show compression history dialog"""
+        dialog = CompressionHistoryDialog(self, self.compression_history)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            # If history was cleared, save the empty history
+            self.save_compression_history()
 
 def load_stylesheet(app, stylesheet_path="styles.qss"):
     """Load application stylesheet"""
@@ -538,7 +1291,7 @@ def load_stylesheet(app, stylesheet_path="styles.qss"):
     except Exception as e:
         print(f"Error loading stylesheet: {str(e)}")
 
-
+# Run the application
 if __name__ == "__main__":
     try:
         app = QApplication(sys.argv)
