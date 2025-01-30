@@ -161,7 +161,7 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 ## 👥 Authors
 
 - **Shayan** - *Initial work* - [shayan-shm](https://github.com/shayan-shm)
-- **Pezhman** - *Initial work* - [pksarmadi](https://github.com/pksarmadi)
+- **Pezhman** - *Initial work* - [Pezhm4n](https://github.com/Pezhm4n)
 
 ## 🙏 Acknowledgments
 

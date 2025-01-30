@@ -5,13 +5,110 @@ QMainWindow {
     padding: 10px;
 }
 
-QLabel#datetime_label, QLabel#user_label {
+QDialog {
+    background-color: #1a1a2e;
+}
+
+QDialog#visualizer_dialog {
+    min-width: 800px;
+    min-height: 600px;
+}
+
+QDialog[windowTitle="Compression History"],
+QDialog[windowTitle="Full Text View"],
+QDialog[windowTitle="Huffman Tree"],
+QDialog[windowTitle="Huffman Tree Visualization"],
+QDialog[windowTitle="About"],
+QDialog[windowTitle="Documentation"] {
+    background-color: #1a1a2e;
+}
+
+QDialog[windowTitle="About"] QLabel,
+QDialog[windowTitle="Documentation"] QLabel {
+    color: #ffffff;
+    font-size: 14px;
+    background-color: transparent;
+}
+
+QDialog[windowTitle="About"] QLabel#titleLabel,
+QDialog[windowTitle="Documentation"] QLabel#titleLabel {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+QDialog[windowTitle="About"] QLabel#contentLabel,
+QDialog[windowTitle="Documentation"] QLabel#contentLabel {
+    padding: 10px;
+    line-height: 1.5;
+}
+
+QDialog[windowTitle="About"] QLabel[linkEnabled="true"],
+QDialog[windowTitle="Documentation"] QLabel[linkEnabled="true"] {
+    color: #3a3af5;
+}
+
+QFrame#header_frame {
+    background-color: #1a1a2e;
+    border-bottom: 2px solid #2d3436;
+    padding: 10px;
+}
+
+QFrame#info_frame {
+    background-color: #2d3436;
+    border-radius: 8px;
+    padding: 5px;
+    margin: 5px;
+}
+
+QGroupBox {
+    background-color: #1a1a2e;
+    border: 2px solid #2d3436;
+    border-radius: 10px;
+    margin-top: 1ex;
+    padding: 10px;
+}
+
+QGroupBox::title {
+    color: #ffffff;
+    subcontrol-origin: margin;
+    subcontrol-position: top center;
+    padding: 0 3px;
+    background-color: #1a1a2e;
+}
+
+QGroupBox#filter_group {
+    border: 1px solid #3a3a5a;
+    border-radius: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+}
+
+QGroupBox#filter_group::title {
+    subcontrol-origin: margin;
+    left: 10px;
+    padding: 0 5px;
+}
+
+QLabel#datetime_label,
+QLabel#user_label {
     color: #00ff00;
     font-size: 12px;
     font-family: 'Consolas';
     background-color: #2d3436;
     padding: 5px;
     border-radius: 4px;
+}
+
+QLabel#step_label,
+QLabel.filter_label,
+QToolBar QLabel {
+    color: white;
+    font-size: 14px;
+    padding: 5px;
+}
+
+QLabel#step_label {
+    font-weight: bold;
 }
 
 QPushButton {
@@ -56,6 +153,37 @@ QPushButton#show_huffman_tree_button:disabled {
     color: #888888;
 }
 
+QPushButton#prev_button,
+QPushButton#next_button,
+QPushButton#play_button,
+QPushButton#show_full_text_button,
+QPushButton#close_button {
+    border-radius: 4px;
+    padding: 8px 15px;
+    min-width: 100px;
+}
+
+QPushButton:disabled {
+    background-color: #2a2a3f;
+    color: #666666;
+}
+
+QPushButton#export_button {
+    background-color: #2d5a27;
+}
+
+QPushButton#export_button:hover {
+    background-color: #336633;
+}
+
+QPushButton#clear_button {
+    background-color: #8B0000;
+}
+
+QPushButton#clear_button:hover {
+    background-color: #A00000;
+}
+
 QTextEdit {
     background-color: #2a2a40;
     color: #ffffff;
@@ -76,7 +204,8 @@ QTextEdit#output {
     line-height: 1.5;
 }
 
-QTextEdit#output:focus {
+QTextEdit#output:focus,
+QTextEdit:focus {
     border-color: #3a3af5;
 }
 
@@ -103,9 +232,43 @@ QGroupBox {
 
 QGroupBox::title {
     color: #ffffff;
-    subcontrol-origin: margin;
-    subcontrol-position: top center;
-    padding: 0 3px;
+}
+
+QGraphicsTextItem.title {
+    color: #00BFFF;
+    font-family: "Segoe UI";
+    font-size: 12pt;
+    font-weight: bold;
+}
+
+QGraphicsTextItem.content {
+    color: white;
+    font-family: "Consolas";
+    font-size: 10pt;
+}
+
+QGraphicsTextItem.normal {
+    color: #ffffff;
+}
+
+QGraphicsTextItem.date {
+    color: #00BFFF;
+}
+
+QGraphicsTextItem.info {
+    color: #00ff00;
+}
+
+QGraphicsTextItem.node_text {
+    color: black;
+}
+
+QGraphicsEllipseItem {
+    background-color: #c8c8ff;
+    border: 2px solid black;
+}
+
+QGraphicsRectItem {
     background-color: #1a1a2e;
 }
 
@@ -164,30 +327,95 @@ QGraphicsTextItem[class="title"] {
     color: #00BFFF;
 }
 
-QGraphicsTextItem[class="normal"] {
-    color: #ffffff;
+QMessageBox QPushButton:hover {
+    background-color: #5a5af5;
 }
 
-QDialog[windowTitle="Huffman Tree Visualization"] {
+QMessageBox QPushButton:pressed {
+    background-color: #2a2af5;
+}
+
+QMessageBox QLabel a {
+    color: #3a3af5;
+}
+
+QInputDialog {
     background-color: #1a1a2e;
 }
 
-QDialog[windowTitle="Huffman Tree Visualization"] QGraphicsView {
-    background-color: #262636;
-    border: 2px solid #3a3a5a;
+QInputDialog QLabel {
+    color: #ffffff;
+}
+
+QInputDialog QLineEdit {
+    background-color: #2a2a40;
+    color: #ffffff;
+    border: 1px solid #3a3a5a;
+    border-radius: 8px;
+    padding: 8px;
+}
+
+QInputDialog QLineEdit:focus {
+    border: 2px solid #3a3af5;
+}
+
+QCheckBox {
+    color: #ffffff;
+    spacing: 5px;
+    font-size: 13px;
+}
+
+QCheckBox::indicator {
+    width: 18px;
+    height: 18px;
+    border-radius: 3px;
+    border: 2px solid #3a3af5;
+    background: #262636;
+}
+
+QCheckBox::indicator:unchecked:hover {
+    border-color: #4a4af5;
+    background: #2a2a40;
+}
+
+QCheckBox::indicator:checked {
+    background: #00BFFF;
+}
+
+QSlider {
+    height: 22px;
+}
+
+QSlider::groove:horizontal {
+    border: 1px solid #3a3af5;
+    height: 4px;
+    background: #262636;
+    margin: 0px;
+    border-radius: 2px;
+}
+
+QSlider::handle:horizontal {
+    background: #3a3af5;
+    border: none;
+    width: 16px;
+    height: 16px;
+    margin: -6px 0;
     border-radius: 8px;
 }
 
-QToolBar {
-    background-color: #262636;
-    border: none;
-    padding: 5px;
+QSlider::handle:horizontal:hover {
+    background: #4a4af5;
 }
 
-QToolBar QLabel {
+QLabel#speed_label {
     color: white;
-    font-size: 12px;
+    font-size: 13px;
+}
+
+QLabel#step_label {
+    color: whitesmoke;
+    font-size: 14px;
+    font-weight: bold;
     padding: 5px;
-    background-color: #3a3a5a;
-    border-radius: 4px;
+    margin: 5px 0;
 }

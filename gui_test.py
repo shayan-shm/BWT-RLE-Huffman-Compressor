@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
     QGraphicsScene, QGraphicsEllipseItem, QGraphicsTextItem,
     QFileDialog, QMessageBox, QMenu, QPushButton, QHBoxLayout, QInputDialog, QFrame, QLabel, QComboBox,
     QGraphicsRectItem, QTextEdit, QTabWidget, QSizePolicy, QScrollArea, QGraphicsProxyWidget, QWidget, QGridLayout,
-    QGroupBox
+    QGroupBox, QSlider, QCheckBox
 )
 from PyQt6 import uic
 
@@ -672,6 +672,171 @@ class CompressionHistoryDialog(QDialog):
         except Exception as e:
             QMessageBox.warning(self, "Load Error", f"Error loading history: {str(e)}")
 
+
+class VisualizerWindow(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Algorithm Visualization")
+        self.setModal(True)
+        self.resize(400, 300)  # Increased size for better visibility
+        self.setObjectName("visualizer_dialog")
+
+        # Main layout
+        self.layout = QVBoxLayout(self)
+
+        # Scene setup with larger size
+        self.scene = QGraphicsScene()
+        self.view = QGraphicsView(self.scene)
+        self.view.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.view.setObjectName("visualizer_view")
+        self.view.setMinimumHeight(600)  # Increased minimum height
+
+        # Speed control slider
+        self.speed_layout = QHBoxLayout()
+        self.speed_label = QLabel("Animation Speed:")
+        self.speed_slider = QSlider(Qt.Orientation.Horizontal)
+        self.speed_slider.setMinimum(1)
+        self.speed_slider.setMaximum(10)
+        self.speed_slider.setValue(5)
+        self.speed_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
+        self.speed_layout.addWidget(self.speed_label)
+        self.speed_layout.addWidget(self.speed_slider)
+
+        # Control buttons with better layout
+        self.button_layout = QHBoxLayout()
+        self.prev_btn = QPushButton("◀ Previous")
+        self.next_btn = QPushButton("Next ▶")
+        self.play_btn = QPushButton("▶ Play")
+
+        # Additional controls
+        self.restart_btn = QPushButton("⟳ Restart")
+        self.auto_proceed = QCheckBox("Auto-proceed")
+        self.auto_proceed.setChecked(True)
+
+        # Set object names and styling
+        for btn in [self.prev_btn, self.next_btn, self.play_btn, self.restart_btn]:
+            btn.setMinimumWidth(100)
+            btn.setStyleSheet("""
+                QPushButton {
+                    padding: 8px 15px;
+                    font-size: 14px;
+                }
+            """)
+
+        self.button_layout.addWidget(self.restart_btn)
+        self.button_layout.addWidget(self.prev_btn)
+        self.button_layout.addWidget(self.play_btn)
+        self.button_layout.addWidget(self.next_btn)
+        self.button_layout.addWidget(self.auto_proceed)
+
+        # Step label with better formatting
+        self.step_label = QLabel("Step: 0/0")
+        self.step_label.setObjectName("step_label")
+        self.step_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.step_label.setStyleSheet("font-size: 14px; font-weight: bold;")
+
+        # Add widgets to layout
+        self.layout.addWidget(self.view)
+        self.layout.addLayout(self.speed_layout)
+        self.layout.addWidget(self.step_label)
+        self.layout.addLayout(self.button_layout)
+
+        # Initialize variables
+        self.steps = []
+        self.current_step = 0
+        self.animation_timer = QTimer()
+        self.animation_timer.timeout.connect(self.next_step)
+
+        # Connect signals
+        self.prev_btn.clicked.connect(self.previous_step)
+        self.next_btn.clicked.connect(self.next_step)
+        self.play_btn.clicked.connect(self.toggle_animation)
+        self.restart_btn.clicked.connect(self.restart_animation)
+        self.speed_slider.valueChanged.connect(self.update_animation_speed)
+
+    def add_visualization_step(self, title, content, additional_items=None):
+        """Enhanced step addition with support for custom graphics items"""
+        step = {
+            'title': title,
+            'content': content,
+            'items': additional_items or []
+        }
+        self.steps.append(step)
+        self.update_step_label()
+        if len(self.steps) == 1:
+            self.show_step(0)
+
+    def show_step(self, step_index):
+        if 0 <= step_index < len(self.steps):
+            self.scene.clear()
+            self.current_step = step_index
+            step = self.steps[step_index]
+
+            # Add title with enhanced styling
+            title_item = QGraphicsTextItem(step['title'])
+            title_item.setDefaultTextColor(QColor("#00BFFF"))
+            title_item.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
+            self.scene.addItem(title_item)
+
+            # Add content with better formatting
+            content_item = QGraphicsTextItem(str(step['content']))
+            content_item.setDefaultTextColor(Qt.GlobalColor.white)
+            content_item.setFont(QFont("Consolas", 12))
+            content_item.setPos(0, 40)
+            self.scene.addItem(content_item)
+
+            # Add any additional custom items
+            for item in step['items']:
+                self.scene.addItem(item)
+
+            # Update controls
+            self.prev_btn.setEnabled(step_index > 0)
+            self.next_btn.setEnabled(step_index < len(self.steps) - 1)
+            self.update_step_label()
+
+            # Auto-fit view to content
+            self.view.fitInView(self.scene.itemsBoundingRect(),
+                                Qt.AspectRatioMode.KeepAspectRatio)
+
+    def restart_animation(self):
+        """Restart the animation from the beginning"""
+        self.show_step(0)
+        if self.animation_timer.isActive():
+            self.animation_timer.stop()
+            self.play_btn.setText("▶ Play")
+
+    def update_animation_speed(self):
+        """Update animation speed based on slider value"""
+        if self.animation_timer.isActive():
+            self.animation_timer.setInterval(2000 // self.speed_slider.value())
+
+    def toggle_animation(self):
+        if self.animation_timer.isActive():
+            self.animation_timer.stop()
+            self.play_btn.setText("▶ Play")
+        else:
+            interval = 2000 // self.speed_slider.value()  # Dynamic speed
+            self.animation_timer.start(interval)
+            self.play_btn.setText("⏸ Pause")
+
+    def next_step(self):
+        if self.current_step < len(self.steps) - 1:
+            self.show_step(self.current_step + 1)
+        else:
+            self.animation_timer.stop()
+            self.play_btn.setText("▶ Play")
+            if self.auto_proceed.isChecked():
+                self.accept()
+
+    def previous_step(self):
+        if self.current_step > 0:
+            self.show_step(self.current_step - 1)
+
+    def update_step_label(self):
+        self.step_label.setText(
+            f"Step {self.current_step + 1} of {len(self.steps)}"
+        )
+
 class MyApp(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -844,7 +1009,7 @@ class MyApp(QMainWindow):
             if "Encode" in operation:
                 encoded, rotations = bwt_encode(text)
                 self.add_text_to_scene("BWT Encoding Steps:", x=0, y=self.y_offset, is_title=True)
-                self.add_text_to_scene(f"All Rotations: {rotations}", x=0, y=self.y_offset)
+                self.add_text_to_scene("Show Rotations in : Visualize Huffman ", x=0, y=self.y_offset)
                 self.add_text_to_scene(f"BWT Encoded Result: {encoded}", x=0, y=self.y_offset)
                 text = encoded
             if 'Decode' in operation:
@@ -1109,6 +1274,148 @@ class MyApp(QMainWindow):
             text in ["Huffman", "BWT and RLE and Huffman"] and
             "Encode" in self.operation.currentText()
         )
+
+    def show_bwt_visualization(self):
+        """Show BWT visualization with smooth animation"""
+        text = self.input.toPlainText()
+        if not text:
+            QMessageBox.warning(self, "Warning", "Please enter text to visualize.")
+            return
+
+        visualizer = VisualizerWindow(self)
+        visualizer.setWindowTitle("BWT Visualization")
+
+        # Step 1: Original Text
+        visualizer.add_visualization_step(
+            "Step 1: Original Text",
+            f"Input: {text}"
+        )
+
+        # Step 2: Create Rotations
+        rotations = create_rotations(text)
+        for i, rotation in enumerate(rotations):
+            visualizer.add_visualization_step(
+                f"Step 2.{i + 1}: Rotation {i + 1}",
+                f"Rotation {i + 1}:\n{rotation}"
+            )
+
+        # Step 3: Sort Rotations
+        sorted_rotations = sorted(rotations)
+        for i, rotation in enumerate(sorted_rotations):
+            visualizer.add_visualization_step(
+                f"Step 3.{i + 1}: Sorted Rotation {i + 1}",
+                f"Sorted Rotation {i + 1}:\n{rotation}"
+            )
+
+        # Step 4: Final Result
+        encoded = ''.join(rotation[-1] for rotation in sorted_rotations)
+        visualizer.add_visualization_step(
+            "Step 4: Final BWT Result",
+            f"Original Text: {text}\n"
+            f"Encoded Text: {encoded}\n"
+            f"Compression Ratio: {(len(encoded) / len(text)) * 100:.2f}%"
+        )
+
+        visualizer.exec()
+
+    def show_huffman_visualization(self):
+        """Show Huffman visualization with smooth animation"""
+        text = self.input.toPlainText()
+        if not text:
+            QMessageBox.warning(self, "Warning", "Please enter text to visualize.")
+            return
+
+        visualizer = VisualizerWindow(self)
+        visualizer.setWindowTitle("Huffman Visualization")
+
+        # Step 1: Calculate Frequencies
+        freq_dict = Counter(text)
+        freq_text = "Character Frequencies:\n" + "\n".join(
+            [f"'{char}': {freq} times" for char, freq in sorted(freq_dict.items())]
+        )
+        visualizer.add_visualization_step(
+            "Step 1: Calculate Character Frequencies",
+            freq_text
+        )
+
+        # Step 2: Build Huffman Tree
+        tree = build_huffman_tree(freq_dict)
+        codes = generate_huffman_codes(tree)
+        for char, code in sorted(codes.items()):
+            visualizer.add_visualization_step(
+                f"Step 2: Generate Huffman Code for '{char}'",
+                f"Character: '{char}'\nFrequency: {freq_dict[char]}\nCode: {code}"
+            )
+
+        # Step 3: Encoding Process
+        encoded = ""
+        for char in text:
+            encoded += codes[char]
+            visualizer.add_visualization_step(
+                f"Step 3: Encoding '{char}'",
+                f"Character: '{char}'\nCode: {codes[char]}\nCurrent Encoded Text: {encoded}"
+            )
+
+        # Step 4: Final Results
+        result_text = (
+            f"Original Text: {text[:50]}{'...' if len(text) > 50 else ''}\n"
+            f"Encoded Text: {encoded[:50]}{'...' if len(encoded) > 50 else ''}\n\n"
+            f"Original Size: {len(text) * 8} bits (ASCII)\n"
+            f"Compressed Size: {len(encoded)} bits\n"
+            f"Compression Ratio: {(len(encoded) / (len(text) * 8)) * 100:.2f}%"
+        )
+        visualizer.add_visualization_step(
+            "Step 4: Final Results",
+            result_text
+        )
+
+        visualizer.exec()
+
+    def show_rle_visualization(self):
+        text = self.input.toPlainText()
+        if not text:
+            QMessageBox.warning(self, "Warning", "Please enter text to visualize.")
+            return
+
+        visualizer = VisualizerWindow(self)
+        visualizer.setWindowTitle("RLE Visualization")
+
+        # Step 1: Original Text
+        visualizer.add_visualization_step(
+            "Step 1: Original Text",
+            f"Input: {text}"
+        )
+
+        # Step 2: Process Characters
+        encoded = ""
+        i = 0
+        while i < len(text):
+            count = 1
+            while i + 1 < len(text) and text[i] == text[i + 1]:
+                count += 1
+                i += 1
+            current_encoded = f"{text[i]}{count}"
+            encoded += current_encoded
+            visualizer.add_visualization_step(
+                f"Step 2: Processing Character '{text[i]}'",
+                f"Current Character: '{text[i]}'\n"
+                f"Count: {count}\n"
+                f"Current Encoding: {encoded}\n"
+                f"Remaining Text: {text[i + 1:] if i + 1 < len(text) else '(end)'}"
+            )
+            i += 1
+
+        # Step 3: Final Result
+        visualizer.add_visualization_step(
+            "Step 3: Final RLE Result",
+            f"Original Text: {text}\n"
+            f"Encoded Text: {encoded}\n"
+            f"Original Size: {len(text)} characters\n"
+            f"Encoded Size: {len(encoded)} characters\n"
+            f"Compression Ratio: {(len(encoded) / len(text)) * 100:.2f}%"
+        )
+
+        visualizer.exec()
 
     def save_compression_result(self, original, compressed, method, operation, time_taken):
         """Save compression results with input and output text"""
