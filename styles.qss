@@ -129,15 +129,10 @@ QPushButton:pressed {
     background-color: #2a2af5;
 }
 
-/* Huffman Tree Button */
 QPushButton#show_huffman_tree_button {
     background-color: #2d5a27;
-    color: white;
-    border: none;
-    border-radius: 8px;
     padding: 8px 15px;
     margin: 5px;
-    font-weight: bold;
 }
 
 QPushButton#show_huffman_tree_button:hover {
@@ -197,16 +192,20 @@ QTextEdit#output {
     background-color: #262636;
     color: whitesmoke;
     border: 2px solid #3a3a5a;
-    border-radius: 8px;
     padding: 15px;
     font-family: 'Consolas';
-    font-size: 14px;
     line-height: 1.5;
 }
 
 QTextEdit#output:focus,
 QTextEdit:focus {
     border-color: #3a3af5;
+}
+
+QTextEdit[readOnly="true"] {
+    background-color: #262636;
+    border: none;
+    padding: 5px;
 }
 
 QGraphicsView {
@@ -222,15 +221,17 @@ QGraphicsView:focus {
     border-color: #3a3af5;
 }
 
-QGroupBox {
+QGraphicsView#visualizer_view,
+QGraphicsView#history_view {
     background-color: #1a1a2e;
-    border: 2px solid #2d3436;
-    border-radius: 10px;
-    margin-top: 1ex;
-    padding: 10px;
+    border: none;
 }
 
-QGroupBox::title {
+QGraphicsView#animation_view {
+    border: 2px solid #3a3a5a;
+}
+
+QGraphicsTextItem {
     color: #ffffff;
 }
 
@@ -270,6 +271,7 @@ QGraphicsEllipseItem {
 
 QGraphicsRectItem {
     background-color: #1a1a2e;
+    border: 1px solid #2d3436;
 }
 
 QComboBox {
@@ -281,6 +283,14 @@ QComboBox {
     font-size: 14px;
 }
 
+QComboBox#method_filter,
+QComboBox#operation_filter,
+QComboBox#date_filter {
+    background-color: #262636;
+    border: 1px solid #3a3a5a;
+    min-width: 180px;
+}
+
 QComboBox QAbstractItemView {
     background-color: #2a2a40;
     color: #ffffff;
@@ -288,11 +298,36 @@ QComboBox QAbstractItemView {
     selection-background-color: #3a3af5;
 }
 
-QStatusBar {
-    background-color: #2a2a40;
-    color: #ffffff;
-    font-size: 12px;
-    border-top: 1px solid #555;
+QComboBox::drop-down {
+    border: none;
+}
+
+QComboBox::down-arrow {
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 4px solid #ffffff;
+    margin-right: 5px;
+}
+
+QTabWidget {
+    background-color: #1a1a2e;
+}
+
+QTabWidget::pane {
+    border: 1px solid #2d3436;
+}
+
+QTabBar::tab {
+    background-color: #262636;
+    color: white;
+    padding: 8px 12px;
+    margin: 2px;
+}
+
+QTabBar::tab:selected {
+    background-color: #3a3af5;
 }
 
 QMenuBar {
@@ -318,13 +353,35 @@ QMenu::item:selected {
     background-color: #3a3a5a;
 }
 
-
-QGraphicsTextItem {
+QStatusBar {
+    background-color: #2a2a40;
     color: #ffffff;
+    font-size: 12px;
+    border-top: 1px solid #555;
 }
 
-QGraphicsTextItem[class="title"] {
-    color: #00BFFF;
+QToolBar {
+    background-color: #262636;
+    border: none;
+    padding: 5px;
+}
+
+QMessageBox {
+    background-color: #1a1a2e;
+}
+
+QMessageBox QLabel {
+    color: #ffffff;
+    font-size: 14px;
+}
+
+QMessageBox QPushButton {
+    background-color: #3a3af5;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    min-width: 80px;
 }
 
 QMessageBox QPushButton:hover {

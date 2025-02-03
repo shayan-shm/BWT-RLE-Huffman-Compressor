@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1200</width>
-    <height>800</height>
+    <height>837</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -341,6 +341,79 @@
              </property>
             </widget>
            </item>
+           <item>
+            <layout class="QHBoxLayout" name="visualization_buttons_layout">
+             <item>
+              <widget class="QPushButton" name="visualize_bwt_btn">
+               <property name="styleSheet">
+                <string>
+                 QPushButton {
+                  background-color: #3a3af5;
+                  color: white;
+                  border: none;
+                  border-radius: 8px;
+                  padding: 8px 15px;
+                  font-weight: bold;
+                  margin: 5px;
+                 }
+                 QPushButton:hover {
+                  background-color: #4a4af5;
+                 }
+                </string>
+               </property>
+               <property name="text">
+                <string>Visualize BWT</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="visualize_rle_btn">
+               <property name="styleSheet">
+                <string>
+                 QPushButton {
+                  background-color: #3a3af5;
+                  color: white;
+                  border: none;
+                  border-radius: 8px;
+                  padding: 8px 15px;
+                  font-weight: bold;
+                  margin: 5px;
+                 }
+                 QPushButton:hover {
+                  background-color: #4a4af5;
+                 }
+                </string>
+               </property>
+               <property name="text">
+                <string>Visualize RLE</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="visualize_huffman_btn">
+               <property name="styleSheet">
+                <string>
+                 QPushButton {
+                  background-color: #3a3af5;
+                  color: white;
+                  border: none;
+                  border-radius: 8px;
+                  padding: 8px 15px;
+                  font-weight: bold;
+                  margin: 5px;
+                 }
+                 QPushButton:hover {
+                  background-color: #4a4af5;
+                 }
+                </string>
+               </property>
+               <property name="text">
+                <string>Visualize Huffman</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
           </layout>
          </widget>
         </item>
@@ -481,7 +554,7 @@
      <string>History</string>
     </property>
     <addaction name="actionShowHistory"/>
-    </widget>
+   </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
      <string>Help</string>
@@ -555,7 +628,7 @@
    <property name="shortcut">
     <string>Ctrl+H</string>
    </property>
-</action>
+  </action>
  </widget>
  <resources/>
  <connections/>

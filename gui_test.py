@@ -15,14 +15,12 @@ from PyQt6.QtWidgets import (
     QGroupBox, QSlider, QCheckBox
 )
 from PyQt6 import uic
-
 from advanced_compression_tool import (
     bwt_encode, bwt_decode,
     rle_encode, rle_decode,
     build_huffman_tree, generate_huffman_codes,
-    huffman_encode, huffman_decode
+    huffman_encode, huffman_decode, create_rotations
 )
-
 class CompressionHistoryDialog(QDialog):
     def __init__(self, parent=None, compression_history=None):
         super().__init__(parent)
@@ -52,37 +50,45 @@ class CompressionHistoryDialog(QDialog):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
+        # Create ComboBoxes FIRST
+        self.method_filter = QComboBox()
+        self.operation_filter = QComboBox()
+        self.date_filter = QComboBox()
+
+        # Add items to ComboBoxes
+        self.method_filter.addItems([
+            "All Methods", "BWT", "RLE", "Huffman", "BWT and RLE and Huffman"
+        ])
+        self.operation_filter.addItems([
+            "All Operations", "Encode", "Decode", "Encode → Decode"
+        ])
+        self.date_filter.addItems([
+            "All Time", "Today", "Last 7 Days", "Last 30 Days"
+        ])
         # Header frame
         header_frame = QFrame()
-        header_frame.setStyleSheet("""
-            QFrame {
-                background-color: #1a1a2e;
-                border-bottom: 2px solid #2d3436;
-                padding: 10px;
-            }
-        """)
+        header_frame.setObjectName("header_frame")
+
 
         # Create main header layout
         header_layout = QVBoxLayout(header_frame)
         header_layout.setContentsMargins(10, 5, 10, 5)
         header_layout.setSpacing(10)
 
+        # Header frame
+        header_frame = QFrame()
+        header_frame.setObjectName("header_frame")
+
+        # Create main header layout
+        header_layout = QVBoxLayout(header_frame)
+        header_layout.setContentsMargins(10, 5, 10, 5)
+        header_layout.setSpacing(10)
+
+        header_frame.setObjectName("header_frame")
+
         # Filter group box
         filter_group = QGroupBox("Filters")
-        filter_group.setStyleSheet("""
-            QGroupBox {
-                border: 1px solid #3a3a5a;
-                border-radius: 8px;
-                margin-top: 10px;
-                padding-top: 10px;
-                color: white;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 5px;
-            }
-        """)
+        filter_group.setObjectName("filter_group")
 
         # Grid layout for filters
         filter_grid = QGridLayout(filter_group)
@@ -112,31 +118,11 @@ class CompressionHistoryDialog(QDialog):
             "All Time", "Today", "Last 7 Days", "Last 30 Days"
         ])
 
-        # Common ComboBox style
-        combo_style = """
-            QComboBox {
-                background-color: #262636;
-                color: #ffffff;
-                border: 1px solid #3a3a5a;
-                border-radius: 8px;
-                padding: 5px;
-                min-width: 180px;
-            }
-            QComboBox::drop-down {
-                border: none;
-            }
-            QComboBox::down-arrow {
-                image: none;
-                border-left: 5px solid transparent;
-                border-right: 5px solid transparent;
-                border-top: 5px solid #ffffff;
-                margin-right: 5px;
-            }
-        """
+        # Set object names for styling
+        self.method_filter.setObjectName("method_filter")
+        self.operation_filter.setObjectName("operation_filter")
+        self.date_filter.setObjectName("date_filter")
 
-        self.method_filter.setStyleSheet(combo_style)
-        self.operation_filter.setStyleSheet(combo_style)
-        self.date_filter.setStyleSheet(combo_style)
 
         # Add filters to grid layout
         filter_grid.addWidget(method_label, 0, 0)
@@ -156,36 +142,10 @@ class CompressionHistoryDialog(QDialog):
 
         # Export and Clear buttons
         self.export_button = QPushButton("Export History")
-        self.export_button.setStyleSheet("""
-            QPushButton {
-                background-color: #2d5a27;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                padding: 8px 15px;
-                font-weight: bold;
-                min-width: 120px;
-            }
-            QPushButton:hover {
-                background-color: #336633;
-            }
-        """)
-
         self.clear_button = QPushButton("Clear History")
-        self.clear_button.setStyleSheet("""
-            QPushButton {
-                background-color: #8B0000;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                padding: 8px 15px;
-                font-weight: bold;
-                min-width: 120px;
-            }
-            QPushButton:hover {
-                background-color: #A00000;
-            }
-        """)
+
+        self.export_button.setObjectName("export_button")
+        self.clear_button.setObjectName("clear_button")
 
         button_layout.addStretch()
         button_layout.addWidget(self.export_button)
@@ -200,12 +160,6 @@ class CompressionHistoryDialog(QDialog):
         self.scene = QGraphicsScene()
         self.view = QGraphicsView(self.scene)
         self.view.setRenderHint(QPainter.RenderHint.Antialiasing)
-        self.view.setStyleSheet("""
-            QGraphicsView {
-                background-color: #111111;
-                border: none;
-            }
-        """)
         self.view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.view.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
 
@@ -354,19 +308,7 @@ class CompressionHistoryDialog(QDialog):
 
             # Show Full Text button
             show_text_button = QPushButton("Show Full Text")
-            show_text_button.setStyleSheet("""
-                QPushButton {
-                    background-color: #3a3af5;
-                    color: white;
-                    border: none;
-                    border-radius: 4px;
-                    padding: 4px 8px;
-                    min-width: 100px;
-                }
-                QPushButton:hover {
-                    background-color: #4a4af5;
-                }
-            """)
+            show_text_button.setObjectName("show_full_text_button")
 
             def create_button_handler(item_data):
                 def button_handler():
@@ -397,40 +339,17 @@ class CompressionHistoryDialog(QDialog):
             dialog.setWindowTitle("Full Text View")
             dialog.resize(600, 400)
 
+
             layout = QVBoxLayout(dialog)
 
             # Create tabs for input and output text
             tabs = QTabWidget()
-            tabs.setStyleSheet("""
-                QTabWidget {
-                    background-color: #1a1a2e;
-                }
-                QTabWidget::pane {
-                    border: 1px solid #2d3436;
-                }
-                QTabBar::tab {
-                    background-color: #262636;
-                    color: white;
-                    padding: 8px 12px;
-                    margin: 2px;
-                }
-                QTabBar::tab:selected {
-                    background-color: #3a3af5;
-                }
-            """)
 
             # Input text tab
             input_tab = QTextEdit()
             input_tab.setPlainText(item["original_text"])
             input_tab.setReadOnly(True)
-            input_tab.setStyleSheet("""
-                QTextEdit {
-                    background-color: #262636;
-                    color: white;
-                    border: none;
-                    padding: 5px;
-                }
-            """)
+
             tabs.addTab(input_tab, "Input Text")
 
             # Output text tab
@@ -444,27 +363,14 @@ class CompressionHistoryDialog(QDialog):
 
             # Add close button
             close_button = QPushButton("Close")
-            close_button.setStyleSheet("""
-                QPushButton {
-                    background-color: #3a3af5;
-                    color: white;
-                    border: none;
-                    border-radius: 4px;
-                    padding: 6px 12px;
-                    font-weight: bold;
-                }
-                QPushButton:hover {
-                    background-color: #4a4af5;
-                }
-            """)
             close_button.clicked.connect(dialog.close)
             layout.addWidget(close_button)
 
-            dialog.setStyleSheet("""
-                QDialog {
-                    background-color: #1a1a2e;
-                }
-            """)
+            dialog.setObjectName("full_text_dialog")
+            tabs.setObjectName("text_tabs")
+            input_tab.setObjectName("input_tab")
+            output_tab.setObjectName("output_tab")
+            close_button.setObjectName("close_button")
 
             dialog.exec()
         except Exception as e:
@@ -848,6 +754,7 @@ class MyApp(QMainWindow):
         self.update_info_labels()
         self.setup_context_menu()
 
+
     def setup_context_menu(self):
         """Setup context menu for GraphicsView"""
         self.graphicsView.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -920,12 +827,15 @@ class MyApp(QMainWindow):
             Qt.TextInteractionFlag.TextSelectableByKeyboard
         )
 
+        self.visualize_bwt_btn.clicked.connect(self.show_bwt_visualization)
+        self.visualize_rle_btn.clicked.connect(self.show_rle_visualization)
+        self.visualize_huffman_btn.clicked.connect(self.show_huffman_visualization)
+
     def initialize_variables(self):
         """Initialize class variables"""
         self.current_huffman_tree = None
         self.compression_history = []
         self.codes = None
-        self.y_offset = 0
 
     def update_info_labels(self):
         """Update datetime and user information labels"""
@@ -1077,6 +987,7 @@ class MyApp(QMainWindow):
                 return decoded
         except Exception as e:
             raise Exception(f"Huffman Error: {str(e)}")
+
 
     def calculate_tree_height(self, node):
         """Calculate the height of the tree"""
@@ -1583,11 +1494,17 @@ class MyApp(QMainWindow):
 
     def show_compression_history(self):
         """Show compression history dialog"""
-        dialog = CompressionHistoryDialog(self, self.compression_history)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            # If history was cleared, save the empty history
-            self.save_compression_history()
-
+        try:
+            dialog = CompressionHistoryDialog(self, self.compression_history)
+            dialog.setStyleSheet("""
+                QDialog {
+                    background-color: #1a1a2e;
+                }
+            """)
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                self.save_compression_history()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to show history: {str(e)}")
 def load_stylesheet(app, stylesheet_path="styles.qss"):
     """Load application stylesheet"""
     try:
