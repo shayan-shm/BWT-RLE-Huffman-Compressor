@@ -553,6 +553,8 @@ class CompressionHistoryDialog(QDialog):
 
         if reply == QMessageBox.StandardButton.Yes:
             self.compression_history.clear()
+            with open('compression_history.pkl', 'wb') as f:
+                pickle.dump(self.compression_history, f)
             self.update_history_view()
             return True
         return False
@@ -1021,11 +1023,10 @@ class MyApp(QMainWindow):
         Calculate horizontal spacing between nodes at each level
         """
         # Base spacing that increases for lower levels
-        min_spacing = 60  # Minimum spacing between nodes
-        max_spacing = window_width / 4  # Maximum spacing
+        min_spacing =  self.radius  # Minimum spacing between nodes
 
         # Calculate spacing based on level
-        spacing = max_spacing / (2 ** level)
+        spacing = (2 ** (total_levels - level - 2) * self.radius)
         return max(min_spacing, spacing)
 
     def draw_huffman_tree(self, node, x, y, level, total_levels, level_widths, window_width, drawn_positions=None):
@@ -1035,24 +1036,12 @@ class MyApp(QMainWindow):
         if node is None:
             return
 
-        if drawn_positions is None:
-            drawn_positions = {i: [] for i in range(total_levels)}
-
-        # Node properties
-        radius = max(25, 30 - (total_levels // 4))
-
         # Calculate horizontal spacing for this level
         h_spacing = self.get_node_horizontal_spacing(level, total_levels, window_width)
 
-        # Adjust x position if it conflicts with already drawn nodes
-        while any(abs(pos - x) < h_spacing for pos in drawn_positions[level]):
-            x += h_spacing
-
-        drawn_positions[level].append(x)
-
         # Draw the current node
-        ellipse = QGraphicsEllipseItem(x - radius, y - radius, 2 * radius, 2 * radius)
-        ellipse.setPen(QPen(Qt.GlobalColor.black))
+        ellipse = QGraphicsEllipseItem(x - self.radius, y - self.radius, 2 * self.radius, 2 * self.radius)
+        ellipse.setPen(QPen(Qt.GlobalColor.white))
         ellipse.setBrush(QBrush(QColor(200, 200, 255)))
         self.huffman_scene.addItem(ellipse)
 
@@ -1060,7 +1049,7 @@ class MyApp(QMainWindow):
         text = f"{node.char}:{node.freq}" if node.char else f"{node.freq}"
         text_item = QGraphicsTextItem(text)
         font = text_item.font()
-        font.setPointSize(int(max(8, radius * 0.5)))
+        font.setPointSize(int(self.radius * 0.5))
         text_item.setFont(font)
 
         # Center text
@@ -1070,7 +1059,7 @@ class MyApp(QMainWindow):
         self.huffman_scene.addItem(text_item)
 
         # Calculate vertical spacing
-        vertical_spacing = min(150, max(80, 400 / total_levels))
+        vertical_spacing = min(150, max(60, 600 / total_levels))
 
         # Draw children
         if node.left or node.right:
@@ -1078,19 +1067,19 @@ class MyApp(QMainWindow):
 
             if node.left:
                 left_x = x - h_spacing
-                self.huffman_scene.addLine(x, y + radius, left_x, next_y - radius,
-                                           QPen(Qt.GlobalColor.black, 2))
+                self.huffman_scene.addLine(x, y + self.radius, left_x, next_y - self.radius,
+                                           QPen(Qt.GlobalColor.black, 1))
                 self.draw_huffman_tree(node.left, left_x, next_y, level + 1,
                                        total_levels, level_widths, window_width,
-                                       drawn_positions)
+                                       )
 
             if node.right:
                 right_x = x + h_spacing
-                self.huffman_scene.addLine(x, y + radius, right_x, next_y - radius,
-                                           QPen(Qt.GlobalColor.black, 2))
+                self.huffman_scene.addLine(x, y + self.radius, right_x, next_y - self.radius,
+                                           QPen(Qt.GlobalColor.black, 1))
                 self.draw_huffman_tree(node.right, right_x, next_y, level + 1,
                                        total_levels, level_widths, window_width,
-                                       drawn_positions)
+                                       )
 
     def open_huffman_tree(self, tree):
         self.tree_window = QDialog(self)
@@ -1135,15 +1124,19 @@ class MyApp(QMainWindow):
 
         # Draw tree
         self.huffman_scene.clear()
-        start_x = window_width / 2
+        start_x = window_width // 2
         start_y = 50
+
+        # Calculate the radius dynamically based on the number of nodes and window width
+        self.number_of_codes = sum(self.calculate_subtree_width(tree).values())
+        self.radius = window_width // (3 * self.number_of_codes)
 
         self.draw_huffman_tree(tree, start_x, start_y, 0, total_levels,
                                level_widths, window_width)
 
         # Set scene rect with padding
         scene_rect = self.huffman_scene.itemsBoundingRect()
-        padding = 100
+        padding = 50
         scene_rect.adjust(-padding, -padding, padding, padding)
         self.huffman_scene.setSceneRect(scene_rect)
 
@@ -1468,7 +1461,7 @@ class MyApp(QMainWindow):
 
     def show_input_dialog(self):
         """Displays an input dialog for the Huffman code table and validates the input."""
-        question = "Please enter your Huffman code table in the format:\n{'A': '0', 'B': '10', 'C': '11'}"
+        question = "Please enter your Huffman code table in the format:\n{'A': '0', 'B': '10', 'N': '11'}"
 
         while True:
             # Show the input dialog
@@ -1501,8 +1494,8 @@ class MyApp(QMainWindow):
                     background-color: #1a1a2e;
                 }
             """)
-            if dialog.exec() == QDialog.DialogCode.Accepted:
-                self.save_compression_history()
+            dialog.exec()
+            self.load_compression_history()
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to show history: {str(e)}")
 def load_stylesheet(app, stylesheet_path="styles.qss"):
