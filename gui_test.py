@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
     QGraphicsScene, QGraphicsEllipseItem, QGraphicsTextItem,
     QFileDialog, QMessageBox, QMenu, QPushButton, QHBoxLayout, QInputDialog, QFrame, QLabel, QComboBox,
     QGraphicsRectItem, QTextEdit, QTabWidget, QSizePolicy, QScrollArea, QGraphicsProxyWidget, QWidget, QGridLayout,
-    QGroupBox, QSlider, QCheckBox
+    QGroupBox, QSlider, QCheckBox, QSpinBox
 )
 from PyQt6 import uic
 from advanced_compression_tool import (
@@ -21,6 +21,8 @@ from advanced_compression_tool import (
     build_huffman_tree, generate_huffman_codes,
     huffman_encode, huffman_decode, create_rotations
 )
+
+
 class CompressionHistoryDialog(QDialog):
     def __init__(self, parent=None, compression_history=None):
         super().__init__(parent)
@@ -68,7 +70,6 @@ class CompressionHistoryDialog(QDialog):
         # Header frame
         header_frame = QFrame()
         header_frame.setObjectName("header_frame")
-
 
         # Create main header layout
         header_layout = QVBoxLayout(header_frame)
@@ -122,7 +123,6 @@ class CompressionHistoryDialog(QDialog):
         self.method_filter.setObjectName("method_filter")
         self.operation_filter.setObjectName("operation_filter")
         self.date_filter.setObjectName("date_filter")
-
 
         # Add filters to grid layout
         filter_grid.addWidget(method_label, 0, 0)
@@ -338,7 +338,6 @@ class CompressionHistoryDialog(QDialog):
             dialog = QDialog(self)
             dialog.setWindowTitle("Full Text View")
             dialog.resize(600, 400)
-
 
             layout = QVBoxLayout(dialog)
 
@@ -586,68 +585,119 @@ class VisualizerWindow(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Algorithm Visualization")
         self.setModal(True)
-        self.resize(400, 300)  # Increased size for better visibility
+        self.setMinimumSize(1000, 800)
         self.setObjectName("visualizer_dialog")
+
+        # Load QSS styles
+        with open('styles.qss', 'r') as style_file:
+            self.setStyleSheet(style_file.read())
 
         # Main layout
         self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(20, 20, 20, 20)
+        self.layout.setSpacing(20)
 
-        # Scene setup with larger size
+        # Visualization Area
+        self.view = QGraphicsView()
         self.scene = QGraphicsScene()
-        self.view = QGraphicsView(self.scene)
+        self.view.setScene(self.scene)
         self.view.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.view.setRenderHint(QPainter.RenderHint.TextAntialiasing)
         self.view.setObjectName("visualizer_view")
-        self.view.setMinimumHeight(600)  # Increased minimum height
+        self.view.setMinimumHeight(400)
 
-        # Speed control slider
-        self.speed_layout = QHBoxLayout()
+        # تنظیمات اسکرول
+        self.view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.view.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.FullViewportUpdate)
+
+        # Disable Transform View
+        self.view.setTransformationAnchor(QGraphicsView.ViewportAnchor.NoAnchor)
+        self.view.setResizeAnchor(QGraphicsView.ViewportAnchor.NoAnchor)
+
+        # Set fixed size for scene
+        self.scene.setSceneRect(0, 0, 940, 700)  # Less width than the main window for scroll
+
+        # Controls Panel (using QFrame for better styling)
+        self.controls_frame = QFrame()
+        self.controls_frame.setObjectName("controls_frame")
+        self.controls_layout = QVBoxLayout(self.controls_frame)
+        self.controls_layout.setSpacing(15)
+
+        # Step Navigation
+        self.nav_layout = QHBoxLayout()
+
+        # Direct Step Navigation
+        self.step_jump_frame = QFrame()
+        self.step_jump_frame.setObjectName("step_jump_frame")
+        self.step_jump = QHBoxLayout(self.step_jump_frame)
+        self.step_jump.setContentsMargins(10, 5, 10, 5)
+
+        self.step_jump_label = QLabel("Go to Step:")
+        self.step_jump_label.setObjectName("step_jump_label")
+
+        self.step_spinner = QSpinBox()
+        self.step_spinner.setObjectName("step_spinner")
+        self.step_spinner.setMinimum(1)
+        self.step_spinner.setMaximum(1)
+        self.step_spinner.valueChanged.connect(self.go_to_step)
+
+        self.step_jump.addWidget(self.step_jump_label)
+        self.step_jump.addWidget(self.step_spinner)
+        self.step_jump.addStretch()
+
+        self.controls_layout.addWidget(self.step_jump_frame)
+
+        # Step Label
+        self.step_label = QLabel("Step: 0/0")
+        self.step_label.setObjectName("step_label")
+        self.step_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Control Buttons
+        self.button_layout = QHBoxLayout()
+        self.prev_btn = QPushButton("◀ Previous")
+        self.next_btn = QPushButton("Next ▶")
+        self.play_btn = QPushButton("▶ Play")
+        self.restart_btn = QPushButton("⟳ Restart")
+
+        # Setting fixed size for buttons
+        for btn in [self.prev_btn, self.next_btn, self.play_btn, self.restart_btn]:
+            btn.setFixedWidth(120)
+            btn.setFixedHeight(35)
+
+        self.auto_proceed = QCheckBox("Auto-proceed")
+        self.auto_proceed.setChecked(True)
+
+        # Speed Control
+        self.speed_control = QHBoxLayout()
         self.speed_label = QLabel("Animation Speed:")
+        self.speed_label.setObjectName("speed_label")
         self.speed_slider = QSlider(Qt.Orientation.Horizontal)
         self.speed_slider.setMinimum(1)
         self.speed_slider.setMaximum(10)
         self.speed_slider.setValue(5)
         self.speed_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
-        self.speed_layout.addWidget(self.speed_label)
-        self.speed_layout.addWidget(self.speed_slider)
 
-        # Control buttons with better layout
-        self.button_layout = QHBoxLayout()
-        self.prev_btn = QPushButton("◀ Previous")
-        self.next_btn = QPushButton("Next ▶")
-        self.play_btn = QPushButton("▶ Play")
-
-        # Additional controls
-        self.restart_btn = QPushButton("⟳ Restart")
-        self.auto_proceed = QCheckBox("Auto-proceed")
-        self.auto_proceed.setChecked(True)
-
-        # Set object names and styling
-        for btn in [self.prev_btn, self.next_btn, self.play_btn, self.restart_btn]:
-            btn.setMinimumWidth(100)
-            btn.setStyleSheet("""
-                QPushButton {
-                    padding: 8px 15px;
-                    font-size: 14px;
-                }
-            """)
+        # Adding widgets to layouts
+        self.speed_control.addWidget(self.speed_label)
+        self.speed_control.addWidget(self.speed_slider)
 
         self.button_layout.addWidget(self.restart_btn)
         self.button_layout.addWidget(self.prev_btn)
         self.button_layout.addWidget(self.play_btn)
         self.button_layout.addWidget(self.next_btn)
         self.button_layout.addWidget(self.auto_proceed)
+        self.button_layout.setSpacing(10)
 
-        # Step label with better formatting
-        self.step_label = QLabel("Step: 0/0")
-        self.step_label.setObjectName("step_label")
-        self.step_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.step_label.setStyleSheet("font-size: 14px; font-weight: bold;")
+        # Adding all controls to the controls frame
+        self.controls_layout.addLayout(self.step_jump)
+        self.controls_layout.addWidget(self.step_label)
+        self.controls_layout.addLayout(self.speed_control)
+        self.controls_layout.addLayout(self.button_layout)
 
-        # Add widgets to layout
+        # Add everything to main layout
         self.layout.addWidget(self.view)
-        self.layout.addLayout(self.speed_layout)
-        self.layout.addWidget(self.step_label)
-        self.layout.addLayout(self.button_layout)
+        self.layout.addWidget(self.controls_frame)
 
         # Initialize variables
         self.steps = []
@@ -662,70 +712,90 @@ class VisualizerWindow(QDialog):
         self.restart_btn.clicked.connect(self.restart_animation)
         self.speed_slider.valueChanged.connect(self.update_animation_speed)
 
-    def add_visualization_step(self, title, content, additional_items=None):
-        """Enhanced step addition with support for custom graphics items"""
-        step = {
-            'title': title,
-            'content': content,
-            'items': additional_items or []
-        }
-        self.steps.append(step)
-        self.update_step_label()
-        if len(self.steps) == 1:
-            self.show_step(0)
-
     def show_step(self, step_index):
         if 0 <= step_index < len(self.steps):
             self.scene.clear()
             self.current_step = step_index
             step = self.steps[step_index]
 
-            # Add title with enhanced styling
-            title_item = QGraphicsTextItem(step['title'])
-            title_item.setDefaultTextColor(QColor("#00BFFF"))
-            title_item.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
-            self.scene.addItem(title_item)
+            # Set fixed size for scene
+            scene_width = 920
+            self.scene.setSceneRect(0, 0, scene_width, 700)
 
-            # Add content with better formatting
-            content_item = QGraphicsTextItem(str(step['content']))
-            content_item.setDefaultTextColor(Qt.GlobalColor.white)
-            content_item.setFont(QFont("Consolas", 12))
-            content_item.setPos(0, 40)
+            # Calculate positions
+            margin = 20
+            content_width = scene_width - (2 * margin)
+            y_pos = margin
+
+            # Add title with enhanced styling
+            title_item = QGraphicsTextItem()
+            title_item.setHtml(
+                f'<div style="color: #00BFFF; font-family: Segoe UI; font-size: 16pt; font-weight: bold;">{step["title"]}</div>')
+            title_item.setPos(margin, y_pos)
+            title_item.setTextWidth(content_width)
+            self.scene.addItem(title_item)
+            y_pos += title_item.boundingRect().height() + margin
+
+            # Add content with fixed font size and proper formatting
+            content = str(step['content'])
+
+            # Add style for content text
+            content_item = QGraphicsTextItem()
+            formatted_content = (
+                f'<div style="color: white; font-family: Consolas; font-size: 14pt; '
+                f'white-space: pre-wrap; line-height: 1.4;">'
+                f'{self.format_content_with_boxes(content)}'
+                f'</div>'
+            )
+            content_item.setHtml(formatted_content)
+            content_item.setPos(margin, y_pos)
+            content_item.setTextWidth(content_width)
             self.scene.addItem(content_item)
 
-            # Add any additional custom items
+            # Add additional items
             for item in step['items']:
                 self.scene.addItem(item)
 
             # Update controls
             self.prev_btn.setEnabled(step_index > 0)
             self.next_btn.setEnabled(step_index < len(self.steps) - 1)
+            self.step_spinner.setValue(step_index + 1)
             self.update_step_label()
 
-            # Auto-fit view to content
-            self.view.fitInView(self.scene.itemsBoundingRect(),
-                                Qt.AspectRatioMode.KeepAspectRatio)
+            # Scroll up to the top
+            self.view.verticalScrollBar().setValue(0)
 
-    def restart_animation(self):
-        """Restart the animation from the beginning"""
-        self.show_step(0)
-        if self.animation_timer.isActive():
-            self.animation_timer.stop()
-            self.play_btn.setText("▶ Play")
+    def add_visualization_step(self, title, content, additional_items=None):
+        step = {
+            'title': title,
+            'content': content,
+            'items': additional_items or []
+        }
+        self.steps.append(step)
+        self.step_spinner.setMaximum(len(self.steps))
+        self.update_step_label()
+        if len(self.steps) == 1:
+            self.show_step(0)
 
-    def update_animation_speed(self):
-        """Update animation speed based on slider value"""
-        if self.animation_timer.isActive():
-            self.animation_timer.setInterval(2000 // self.speed_slider.value())
+    def update_step_label(self):
+        self.step_label.setText(f"Step {self.current_step + 1} of {len(self.steps)}")
+
+    def go_to_step(self, step_number):
+        if step_number > 0 and step_number <= len(self.steps):
+            self.show_step(step_number - 1)
 
     def toggle_animation(self):
         if self.animation_timer.isActive():
             self.animation_timer.stop()
             self.play_btn.setText("▶ Play")
         else:
-            interval = 2000 // self.speed_slider.value()  # Dynamic speed
+            interval = 2000 // self.speed_slider.value()
             self.animation_timer.start(interval)
             self.play_btn.setText("⏸ Pause")
+
+    def update_animation_speed(self):
+        if self.animation_timer.isActive():
+            self.animation_timer.setInterval(2000 // self.speed_slider.value())
 
     def next_step(self):
         if self.current_step < len(self.steps) - 1:
@@ -740,10 +810,58 @@ class VisualizerWindow(QDialog):
         if self.current_step > 0:
             self.show_step(self.current_step - 1)
 
+    def restart_animation(self):
+        self.show_step(0)
+        if self.animation_timer.isActive():
+            self.animation_timer.stop()
+            self.play_btn.setText("▶ Play")
+
+    def format_content_with_boxes(self, content):
+        """Format content with proper line breaks and HTML escaping"""
+        # Converting special HTML characters
+        content = (content.replace('&', '&amp;')
+                   .replace('<', '&lt;')
+                   .replace('>', '&gt;')
+                   .replace('\n', '<br>')
+                   .replace(' ', '&nbsp;'))
+
+        # For BWT, we keep the new distance and line characters
+        if "Rotation" in content or "Sorted Rotation" in content:
+            lines = content.split('<br>')
+            formatted_lines = []
+            for line in lines:
+                if "Rotation" in line and ":" in line:
+                    # Separate the title from content
+                    title, rotation = line.split(':', 1)
+                    formatted_lines.append(
+                        f"{title}:<br><span style='display: inline-block; margin-left: 20px;'>{rotation}</span>")
+                else:
+                    formatted_lines.append(line)
+            content = '<br>'.join(formatted_lines)
+
+        return content
+
+    def restart_animation(self):
+        """Restart the animation from the beginning"""
+        self.show_step(0)
+        if self.animation_timer.isActive():
+            self.animation_timer.stop()
+            self.play_btn.setText("▶ Play")
+
+    def toggle_animation(self):
+        if self.animation_timer.isActive():
+            self.animation_timer.stop()
+            self.play_btn.setText("▶ Play")
+        else:
+            interval = 2000 // self.speed_slider.value()  # Dynamic speed
+            self.animation_timer.start(interval)
+            self.play_btn.setText("⏸ Pause")
+
     def update_step_label(self):
         self.step_label.setText(
             f"Step {self.current_step + 1} of {len(self.steps)}"
         )
+
 
 class MyApp(QMainWindow):
     def __init__(self):
@@ -755,7 +873,6 @@ class MyApp(QMainWindow):
         self.load_compression_history()
         self.update_info_labels()
         self.setup_context_menu()
-
 
     def setup_context_menu(self):
         """Setup context menu for GraphicsView"""
@@ -809,7 +926,7 @@ class MyApp(QMainWindow):
         # Connect signals
         self.process_button.clicked.connect(self.process)
         self.open_file_button.clicked.connect(self.open_file)
-        self.show_huffman_tree_button.clicked.connect(lambda : self.open_huffman_tree(self.current_huffman_tree))
+        self.show_huffman_tree_button.clicked.connect(lambda: self.open_huffman_tree(self.current_huffman_tree))
         self.method.currentTextChanged.connect(self.update_huffman_button_state)
         self.operation.currentTextChanged.connect(self.update_huffman_button_state)
 
@@ -990,7 +1107,6 @@ class MyApp(QMainWindow):
         except Exception as e:
             raise Exception(f"Huffman Error: {str(e)}")
 
-
     def calculate_tree_height(self, node):
         """Calculate the height of the tree"""
         if node is None:
@@ -1023,7 +1139,7 @@ class MyApp(QMainWindow):
         Calculate horizontal spacing between nodes at each level
         """
         # Base spacing that increases for lower levels
-        min_spacing =  self.radius  # Minimum spacing between nodes
+        min_spacing = self.radius  # Minimum spacing between nodes
 
         # Calculate spacing based on level
         spacing = (2 ** (total_levels - level - 2) * self.radius)
@@ -1223,7 +1339,6 @@ class MyApp(QMainWindow):
         visualizer.exec()
 
     def show_huffman_visualization(self):
-        """Show Huffman visualization with smooth animation"""
         text = self.input.toPlainText()
         if not text:
             QMessageBox.warning(self, "Warning", "Please enter text to visualize.")
@@ -1234,8 +1349,8 @@ class MyApp(QMainWindow):
 
         # Step 1: Calculate Frequencies
         freq_dict = Counter(text)
-        freq_text = "Character Frequencies:\n" + "\n".join(
-            [f"'{char}': {freq} times" for char, freq in sorted(freq_dict.items())]
+        freq_text = "Character Frequencies:\n\n" + "\n".join(
+            f"'{char}': {freq} times" for char, freq in sorted(freq_dict.items())
         )
         visualizer.add_visualization_step(
             "Step 1: Calculate Character Frequencies",
@@ -1248,22 +1363,31 @@ class MyApp(QMainWindow):
         for char, code in sorted(codes.items()):
             visualizer.add_visualization_step(
                 f"Step 2: Generate Huffman Code for '{char}'",
-                f"Character: '{char}'\nFrequency: {freq_dict[char]}\nCode: {code}"
+                f"Character: '{char}'\n"
+                f"Frequency: {freq_dict[char]}\n"
+                f"Code: {code}"
             )
 
         # Step 3: Encoding Process
         encoded = ""
         for char in text:
             encoded += codes[char]
+            current_text = (f"Character: '{char}'\n"
+                            f"Code: {codes[char]}\n\n"
+                            f"Current Encoded Text:\n{encoded[:100]}"
+                            f"{'...' if len(encoded) > 100 else ''}")
             visualizer.add_visualization_step(
                 f"Step 3: Encoding '{char}'",
-                f"Character: '{char}'\nCode: {codes[char]}\nCurrent Encoded Text: {encoded}"
+                current_text
             )
 
         # Step 4: Final Results
+        text_preview = text[:50] + ('...' if len(text) > 50 else '')
+        encoded_preview = encoded[:50] + ('...' if len(encoded) > 50 else '')
+
         result_text = (
-            f"Original Text: {text[:50]}{'...' if len(text) > 50 else ''}\n"
-            f"Encoded Text: {encoded[:50]}{'...' if len(encoded) > 50 else ''}\n\n"
+            f"Original Text:\n{text_preview}\n\n"
+            f"Encoded Text:\n{encoded_preview}\n\n"
             f"Original Size: {len(text) * 8} bits (ASCII)\n"
             f"Compressed Size: {len(encoded)} bits\n"
             f"Compression Ratio: {(len(encoded) / (len(text) * 8)) * 100:.2f}%"
@@ -1498,6 +1622,8 @@ class MyApp(QMainWindow):
             self.load_compression_history()
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to show history: {str(e)}")
+
+
 def load_stylesheet(app, stylesheet_path="styles.qss"):
     """Load application stylesheet"""
     try:
@@ -1507,6 +1633,7 @@ def load_stylesheet(app, stylesheet_path="styles.qss"):
         print(f"Warning: Stylesheet file '{stylesheet_path}' not found!")
     except Exception as e:
         print(f"Error loading stylesheet: {str(e)}")
+
 
 # Run the application
 if __name__ == "__main__":

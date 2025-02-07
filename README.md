@@ -2,6 +2,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
 [![PyQt6](https://img.shields.io/badge/PyQt-6.0%2B-green.svg)](https://pypi.org/project/PyQt6/)
+[![Last Updated](https://img.shields.io/badge/last%20updated-2025--02--07-brightgreen.svg)](https://github.com/shayan-shm/BWT-RLE-Huffman-Compressor)
 
 A powerful and user-friendly text compression tool implementing multiple compression algorithms with a modern GUI interface. This project was developed as part of the Data Structures and Algorithms course.
 
@@ -14,18 +15,27 @@ A powerful and user-friendly text compression tool implementing multiple compres
   - Run-Length Encoding (RLE)
   - Huffman Coding
   - Combined compression (BWT + RLE + Huffman)
+  - Enhanced visualization for each algorithm
+  - Step-by-step process display
+  - Improved compression ratios
 
 - **Interactive GUI:**
   - Modern and intuitive interface
   - Real-time compression visualization
   - Interactive Huffman tree visualization
   - Dark theme for better readability
+  - Direct step navigation in visualization
+  - Smooth animations and transitions
+  - Improved text display with fixed font size
 
 - **Advanced Functionality:**
   - File import/export support
   - Compression history tracking
   - Performance metrics
   - Interactive text selection and copying
+  - NEW: Enhanced error handling
+  - NEW: Progress indicators
+  - NEW: Auto-proceed option
 
 ## 🛠️ Installation
 
@@ -37,18 +47,20 @@ cd BWT-RLE-Huffman-Compressor
 
 2. Run the application:
 ```bash
-python main.py
+python gui_test.py
 ```
 
 ## 📋 Requirements
 
 - Python 3.8 or higher
 - PyQt6
+- NEW: QSS styling support
+- NEW: Unicode text handling
 
 ## 🎯 Usage
 
 1. **Launch the Application:**
-   - Run `main.py` to start the GUI interface
+   - Run `gui_test.py` to start the GUI interface
 
 2. **Input Text:**
    - Type directly into the input field
@@ -89,6 +101,7 @@ python main.py
 - Optimal for character-level compression
 - Interactive tree visualization available
 
+
 ## 📊 Features in Detail
 
 ### Compression Visualization
@@ -96,6 +109,10 @@ python main.py
 - Step-by-step algorithm execution
 - Interactive Huffman tree display with zoom and pan
 - Copy and selection support in visualization panel
+- NEW: Direct step navigation
+- NEW: Fixed font size for better readability
+- NEW: Automatic text wrapping
+- NEW: Smooth scrolling
 
 ### Text Handling
 - Unicode support
@@ -116,34 +133,41 @@ python main.py
   - Dark theme
   - Status indicators
   - Progress feedback
+  - Enhanced control panel
+  - Improved text display
 
 - **Visualization Panel:**
   - Interactive graphics
-  - Zoom controls (Ctrl + Mouse Wheel)
-  - Pan functionality (Click and Drag)
-  - Reset view option (Double Click)
+  - Zoom controls
+  - Pan functionality
+  - Reset view option
+  - Direct step navigation
+  - Fixed font size display
+  - Smooth scrolling
 
 - **Control Panel:**
   - Algorithm selection
   - Operation modes
   - File operations
   - History access
+  - Step navigation controls
+  - Animation speed control
+  - Auto-proceed option
 
 ## 🔧 Technical Details
 
 ### Project Structure
 ```
 BWT-RLE-Huffman-Compressor/
-├── main.py
+├── gui_test.py
 ├── advanced_compression_tool.py
 ├── styles.qss
-├── requirements.txt
 ├── main_window.ui
 └── README.md
 ```
 
 ### Key Components
-- `main.py`: Application entry point and GUI implementation
+- `gui_test.py`: Application entry point and GUI implementation
 - `advanced_compression_tool.py`: Core compression algorithms
 - `styles.qss`: UI styling and themes
 - `main_window.ui`: Qt Designer UI layout
@@ -174,7 +198,7 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 For questions and support, please create an issue in the GitHub repository or contact the maintainers:
 
 #### Email:
-- Shayan.shm2003@gmail.com 
+- shayan.shm2003@gmail.com 
 - pksarmadi@gmail.com
 
 ---

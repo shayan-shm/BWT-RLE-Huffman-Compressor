@@ -208,6 +208,55 @@ QTextEdit[readOnly="true"] {
     padding: 5px;
 }
 
+QGraphicsView#visualizer_view {
+    background-color: #1a1a2e;
+    border: 2px solid #3a3a5a;
+    border-radius: 8px;
+}
+
+QGraphicsView#visualizer_view QScrollBar:vertical {
+    background: #262636;
+    width: 12px;
+    border-radius: 6px;
+}
+
+QGraphicsView#visualizer_view QScrollBar::handle:vertical {
+    background: #3a3af5;
+    min-height: 20px;
+    border-radius: 6px;
+}
+
+QGraphicsView#visualizer_view QScrollBar::handle:vertical:hover {
+    background: #4a4af5;
+}
+
+QGraphicsView#visualizer_view QScrollBar:horizontal {
+    background: #262636;
+    height: 12px;
+    border-radius: 6px;
+}
+
+QGraphicsView#visualizer_view QScrollBar::handle:horizontal {
+    background: #3a3af5;
+    min-width: 20px;
+    border-radius: 6px;
+}
+
+QGraphicsView#visualizer_view QScrollBar::handle:horizontal:hover {
+    background: #4a4af5;
+}
+
+QGraphicsView#visualizer_view QScrollBar::add-line,
+QGraphicsView#visualizer_view QScrollBar::sub-line {
+    width: 0;
+    height: 0;
+}
+
+QGraphicsView#visualizer_view QScrollBar::add-page,
+QGraphicsView#visualizer_view QScrollBar::sub-page {
+    background: none;
+}
+
 QGraphicsView {
     background-color: #262636;
     color: white;
@@ -476,3 +525,80 @@ QLabel#step_label {
     padding: 5px;
     margin: 5px 0;
 }
+
+QFrame#step_jump_frame {
+    background-color: #262636;
+    border: 1px solid #3a3a5a;
+    border-radius: 8px;
+    padding: 5px;
+}
+
+QLabel#step_jump_label {
+    color: white;
+    font-size: 13px;
+    padding-right: 10px;
+}
+
+QSpinBox#step_spinner {
+    background-color: #2a2a40;
+    color: white;
+    border: 1px solid #3a3a5a;
+    border-radius: 4px;
+    padding: 5px;
+    min-width: 80px;
+    min-height: 25px;
+    font-size: 13px;
+}
+
+QSpinBox#step_spinner:hover {
+    border-color: #3a3af5;
+}
+
+QSpinBox#step_spinner:focus {
+    border: 2px solid #3a3af5;
+}
+
+QSpinBox#step_spinner::up-button {
+    background-color: #3a3af5;
+    border: none;
+    border-radius: 2px;
+    width: 16px;
+    height: 12px;
+    margin: 1px;
+}
+
+QSpinBox#step_spinner::down-button {
+    background-color: #3a3af5;
+    border: none;
+    border-radius: 2px;
+    width: 16px;
+    height: 12px;
+    margin: 1px;
+}
+
+QSpinBox#step_spinner::up-button:hover,
+QSpinBox#step_spinner::down-button:hover {
+    background-color: #4a4af5;
+}
+
+QSpinBox#step_spinner::up-button:pressed,
+QSpinBox#step_spinner::down-button:pressed {
+    background-color: #2a2af5;
+}
+
+QSpinBox#step_spinner::up-arrow {
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-bottom: 6px solid white;
+}
+
+QSpinBox#step_spinner::down-arrow {
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 6px solid white;
+}
+
